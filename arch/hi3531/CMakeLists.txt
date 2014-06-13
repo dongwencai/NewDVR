@@ -1,0 +1,5 @@
+
+
+INSTALL(PROGRAMS 
+		thttpd
+		DESTINATION bin)

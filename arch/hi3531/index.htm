@@ -1,0 +1,88 @@
+﻿<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title></title>
+    <script>
+        var Namespace = new Object();Namespace.register = function(path){var arr = path.split(".");var ns = "";for(var i=0;i<arr.length;i++){if(i>0) ns += ".";ns += arr[i];eval("if(typeof(" + ns + ") == 'undefined') " + ns + " = new Object();");}}
+        Namespace.register("ZeroStyle.FrameWork.Function");Namespace.register("ZeroStyle.Control.Function");Namespace.register("JoveTech.DVR.Language.zh_cn");Namespace.register("JoveTech.DVR.Language.en_us");
+        
+        ZeroStyle.FrameWork.Function={
+        GetArgsFromHref:function(sArgName,sHref){if(!sHref||sHref=="undefined"||sHref==""){sHref=location.href;}var args = sHref.split("?");var retval = ""; if(args[0] == sHref){return retval;}
+        var str = args[1];args = str.split("&");for(var i=0;i<args.length;i++){str = args[i];var arg = str.split("=");if(arg.length <= 1)continue;if(arg[0].toLowerCase() == sArgName.toLowerCase()) {retval = arg[1];break;}}return retval;},
+        SetArgsFromHref:function(sArgName,sHref,sArgValue){if(!sHref||sHref=="undefined"||sHref==""){sHref=location.href;}var args = sHref.split("?");var retval=args[0];if(retval == sHref){ retval+="?";retval+=sArgName+"="+sArgValue;return retval;}retval+="?";var str = args[1];args = str.split("&");
+		for(var i=0;i<args.length;i++){if(i!=0){retval+="&";}str = args[i];var arg = str.split("=");if(arg.length <= 1)continue;if(arg[0].toLowerCase() == sArgName.toLowerCase()){arg[1]=sArgValue;}retval+=arg[0]+"="+arg[1];}return retval;},
+		WriteTo:function(html,id){if(id){this.$(id).innerHTML=html;}else{document.write(html);}}
+		}
+		
+		ZeroStyle.Control.Function={
+		    ChangeLang:function(clang){window.location.href=ZeroStyle.FrameWork.Function.SetArgsFromHref("lang",window.location.href,clang)}
+		}
+		
+		JoveTech.DVR.Language.zh_cn={
+		    language:"中文",languagev:"zh_cn", PageTitle:"云视通IE监控页面使用帮助",TitleTxt:"云视通IE监控页面使用帮助",li1:"安装方式一：从官方网站下载最新版本。<br/>直接点击<a target=\"_blank\" href=\"http://www.afdvr.com/cloud/\">官方网站</a>进行ActiveX的自动安装。或者<a target=\"_blank\" href=\"http://www.afdvr.com/cloud/install/JocxSetup.exe\">下载</a>完整安装包安装，此方式安装完毕后会在桌面产生快捷方式“CloudSee”，双击快捷方式进入远程监控界面。当有新版本发布时，该方式可以自动升级至最新。<br/>",
+		    li2:"安装方式二：使用随机光盘安装。<br/>打开光盘运行JSetup.exe，然后选择 \"安装 IE ActiveX\"选项进行安装，安装完毕后在桌面产生快捷方式“CloudSee”，双击快捷方式进入远程监控界面。<br/>"
+		}
+		JoveTech.DVR.Language.en_us={
+		    language:"English",languagev:"en_us",PageTitle:"CloudSEE IE Surveillance User Manual",TitleTxt:"CloudSEE IE Surveillance User Manual",li1:"Installation Method in Internet. <br/>Click <a target=\"_blank\" href=\"http://www.afdvr.com/cloud/\">www.afdvr.com/cloud</a> to install ActiveX automatically. Or <a target=\"_blank\" href=\"http://www.afdvr.com/cloud/install/JocxSetup.exe\">download</a> the ActiveX and install locally, in this way, there will be shortcut “CloudSEE” on desktop.<br/>",
+		    li2:"Installation Method in LAN. <br/>Use installation CD to install IE ActiveX. In this way, there will be shortcut “CloudSEE” on desktop.<br/>"
+		}
+		var lang=ZeroStyle.FrameWork.Function.GetArgsFromHref("lang");lang=(lang=="")?"zh_cn":lang;eval("lang=JoveTech.DVR.Language."+lang);if(!lang){eval("lang=JoveTech.DVR.Language.zh_cn")}
+		document.title=lang.PageTitle;window.onerror=function(){return true;}
+    </script>
+    <style>
+		BODY{margin: 0;padding: 0;background-color:#d1f0ef}
+		#MainDiv{width:100%;height:100%;border:0px solid #666666;text-align:center;}
+		.TitleDiv{margin-top:20px;width:227px;height:50px;line-height:50px;font-size:25px;color:#666666;font-weight:bold; text-align-last:justify; vertical-align:baseline;border:0px solid #000000}
+		.ContentDiv{margin-top:40px;width:600px;border-collapse: collapse;border:0px solid #000000;text-align:left;}
+		.ContentDiv ul.ContentList{border:0px solid #000000;list-style-type:square;PADDING-LEFT: 0px;margin-left:20px;margin-right:10px;margin-BOTTOM: 10px;margin-TOP: 10px;}
+		.ContentDiv ul.ContentList li{border:0px solid #000000;PADDING-RIGHT: 0px;PADDING-LEFT: 0px;PADDING-BOTTOM: 0px;PADDING-TOP: 0px;margin-RIGHT: 0px;margin-LEFT: 0px;margin-BOTTOM: 10px;margin-TOP: 5px;float:inherit;
+		line-height:25px;font-size:18px;color:#3f3f3f}
+		.ContentDiv ul.ContentList li a {font-size:15px;color:#000000;text-decoration:underline;}
+		.ContentDiv ul.ContentList li span.toolTip {font-size:15px;color:red;}
+		.LanguageDiv{width:600px;border:0px solid #000000;text-align:right;}
+		.LanguageDiv #selLanguage{margin-right:30px;line-height:14px;border-style:none;border-width:0px;color:#999999;background-color:#d1f0ef;}
+		</style>
+</head>
+<body onload="window.location.href = 'http://webcc.jovecloud.com'">
+    <div id="MainDiv">
+			<div class="LanguageDiv">
+				<br/>
+				<select id="selLanguage" onchange="ZeroStyle.Control.Function.ChangeLang(this.value)">
+								<option value="zh_cn"><script>ZeroStyle.FrameWork.Function.WriteTo(JoveTech.DVR.Language.zh_cn.language)</script></option>
+								<option value="en_us"><script>ZeroStyle.FrameWork.Function.WriteTo(JoveTech.DVR.Language.en_us.language)</script></option>
+							</select>
+			</div>
+			<div class="TitleDiv">
+			    <script>
+			        ZeroStyle.FrameWork.Function.WriteTo(lang.PageTitle)
+			    </script>
+			</div>
+			<div class="ContentDiv">
+				<ul class="ContentList">
+					
+					<li>
+						<script>
+			                ZeroStyle.FrameWork.Function.WriteTo(lang.li1)
+			            </script>
+					</li>
+					<li>
+						<script>
+			                ZeroStyle.FrameWork.Function.WriteTo(lang.li2)
+			            </script>
+					</li>
+					
+				</ul>
+			</div>
+			
+		</div>
+		<script>
+		var selLanguage=document.getElementById("selLanguage");
+		for(var i=0;i<selLanguage.options.length;i++)
+		{
+			if(selLanguage.options[i].value==lang.languagev)
+			{
+				    selLanguage.options[i].selected=true;
+			}
+		}
+		</script>
+</body>
+</html>
