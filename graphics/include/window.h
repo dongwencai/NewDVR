@@ -1,4 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////////////head
+#ifndef __WINDOW_H__
+#define __WINDOW_H__
 typedef struct{
 	int x;
 	int y;
@@ -79,10 +81,10 @@ typedef struct{
 }WIDGET_S,*p_WIDGET_S;
 
 typedef struct{
-	HWND hWndParent;
-	HWND hwndChild;
-	HWND hWndAbove;
-	HWND hWndBottom;
+	pWINDOW_S hWndParent;
+	pWINDOW_S hwndChild;
+	pWINDOW_S hWndAbove;
+	pWINDOW_S hWndBottom;
 }WIN_RELATION_S,*pWIN_RELATION_S;
 
 typedef enum{
@@ -103,10 +105,14 @@ typedef struct{
     pWinFunc pfOnEvent;
     WIDGET_S winWidget_s;
     void *pWinPrivate;
-}WINDOW_S;
+}WINDOW_S,*pWINDOW_S;
 
-
-
+typedef enum{
+	WIN_SUC,
+	WIN_FAIL,
+	WIN_WIN_NOTEXIST,
+}WINRETSTATUS_E;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
