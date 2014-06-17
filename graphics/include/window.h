@@ -65,12 +65,13 @@ typedef struct{
 }CTREVENT,*pCTREVENT;
 
 typedef struct{
-    HWND hwnd;
+    HWND hWnd;
     RECT pos;
     EMCONTROLTYPE emCtrType;
     RESINFO ctrRes;
     COLORINFO ctrColorInfo;
     pCTREVENT ctrEvent;
+	void *next;
     U32   u32Value;
     bool  bRedraw;
 }CONTROL,*pCONTROL;
@@ -95,22 +96,29 @@ typedef enum{
 }EMWINSTATUS;
 
 typedef struct{
-    HWND hWndParent;
+    HWND hWndId;
+	pthread_t msgThreadId;
+	int  msgid;
     pWIN_RELATION_S pWINRelationInfo_s;
     RECT pos_s;
     EMWINTYPE wintype_e;
     EMWINSTATUS winStatus_e;
     RESINFO winRes_s;    
     bool    bRedraw;
+	pWinFunc pfOnCreate;
     pWinFunc pfOnEvent;
+	pWinFunc pfRelease;
     WIDGET_S winWidget_s;
     void *pWinPrivate;
 }WINDOW_S,*pWINDOW_S;
 
 typedef enum{
-	WIN_SUC,
-	WIN_FAIL,
+	WIN_WIN_SUC,
+	WIN_WIN_FAIL,
 	WIN_WIN_NOTEXIST,
+	WIN_WIN_MSG_CREATE_FAIL,
+	WIN_WIN_MEMALLOCFAIL,
+	WIN_CTRL_NOTEXIST,
 }WINRETSTATUS_E;
 #endif
 

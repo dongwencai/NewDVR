@@ -9,7 +9,7 @@ typedef struct{
 	int	nwndid;
 	WINDOW_S wnd_s;
 
-}WINDOWREP_S;
+}WINDOWREP_S,pWINDOWREP_S;
 	
 WINDOWREP_S windowArray[]={
 	{CONTEXT,},
