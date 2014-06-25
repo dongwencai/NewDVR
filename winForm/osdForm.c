@@ -4,7 +4,7 @@
 #include "draw.h"
 
 void *osdCreate(void *pWnd_s,void *param);
-void *osdEvent(void *param);
+void *osdEvent(void *pWnd_s,void *param);
 void *osdRelease(void *pWnd_s,void *param);
 
 static CONTROL  osdCtrl[]={
@@ -25,23 +25,15 @@ void *osdCreate(void *pWnd_s,void *param)
 {
 	
 }
-void *osdEvent(void *param)
+void *osdEvent(void *pWnd_s,void *param)
 {
-	pWINDOW_S pWnd_s=(pWINDOW_S)param;
-	MSG	msg={0};
-	while(1)
+	pWINDOW_S pTWnd_s=(pWINDOW_S)pWnd_s;
+	MSG msg=*(pMSG)param;
+	switch(msg.message)
 	{
-		if(RecvMsg(pWnd_s->msgid,&msg) !=QUE_SUC)
-		{
-			continue;
-		}
-		switch(msg.message)
-		{
-			case	WM_WIN_CREATE:
-			case	WM_WIN_CLOSE:	
-				break;
-
-		}
+		case	WM_WIN_CREATE:
+		case	WM_WIN_CLOSE:	
+			break;
 	}
 }
 void *osdRelease(void *pWnd_s,void *param)

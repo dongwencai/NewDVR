@@ -133,6 +133,26 @@ static HANDLE allocCtrlId(pWINDOW_S pWnd_s)
 	}
 	return 0;
 }
+
+void *getMsg(void *param)
+{
+	pWINDOW_S pWnd_s=(pWINDOW_S)param;	
+	MSG		msg={0};
+	while(1)
+	{
+		if(RecvMsg(pWnd_s->msgid,&msg) !=QUE_SUC)
+		{
+			continue;
+		}
+		pWnd_s->pfOnEvent(pWnd_s,&msg);
+		if(msg.param)
+		{
+			free(msg.param);
+			msg.param=NULL;
+		}
+		msg.message=0;
+	}
+}
 WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 {
 	pWINDOW_S pNewWnd_s=NULL;
@@ -167,7 +187,7 @@ printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,pNewWnd_s->winHdl);
 	{
 		int ret;
 
-		ret=pthread_create(pNewWnd_s->msgThreadId,NULL,pNewWnd_s->pfOnEvent,pNewWnd_s);
+		ret=pthread_create(pNewWnd_s->msgThreadId,NULL,getMsg,pNewWnd_s);
 		if(ret)
 		{
 			if(pNewWnd_s->pfRelease)

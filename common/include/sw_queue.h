@@ -25,7 +25,7 @@ typedef struct {
 typedef struct{
 	int message;
 	void *param;
-}MSG;
+}MSG,*pMSG;
 
 typedef struct{	
 	pthread_mutex_t msglock;

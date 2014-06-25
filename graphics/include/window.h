@@ -12,7 +12,6 @@ typedef struct{
 typedef unsigned long HWND;
 typedef unsigned long HANDLE;
 typedef void *(*pWinFunc)(void *,void *);
-typedef void *(*pWinEvent)(void *);
 typedef void *(*pCtrFunc)(void *);
 
 typedef enum{
@@ -107,7 +106,7 @@ typedef struct WND{
 	U8 *szctrlRes;
     bool    bRedraw;
 	pWinFunc pfOnCreate;
-    pWinEvent pfOnEvent;
+    pWinFunc pfOnEvent;
 	pWinFunc pfRelease;
     WIDGET_S winWidget_s;
     void *pWinPrivate;
