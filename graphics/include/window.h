@@ -1,21 +1,19 @@
 /////////////////////////////////////////////////////////////////////////////////////head
 #ifndef __WINDOW_H__
 #define __WINDOW_H__
+#include "hi_common.h"
+#include "sw_types.h"
+#include "bits/pthreadtypes.h"
 typedef struct{
-	int x;
-	int y;
-}POINT_S;
-	
-typedef struct{
-	POINT_S lu;
-	POINT_S rb;
+	POINT_S lTop;
+	POINT_S rBottom;
 }RECT,*pRECT;
 
 typedef unsigned long HWND;
 typedef unsigned long HANDLE;
-
-typedef void (*pWinFunc)(void *);
-typedef void (*pCtrFunc)(void *);
+typedef void *(*pWinFunc)(void *,void *);
+typedef void *(*pWinEvent)(void *);
+typedef void *(*pCtrFunc)(void *);
 
 typedef enum{
     LABEL,
@@ -34,8 +32,14 @@ typedef enum{
     WIN_NORMAL,
     WIN_CONTEXT,
     WIN_TOP,
+    WIN_OSD,
 }EMWINTYPE;
-
+typedef enum{
+	CTRL_STATUS_NORMAL,
+	CTRL_STATUS_DISABLE,
+	CTRL_STATUS_INVISABLE,
+	CTRL_STATUS_FOCUS,
+}EMCTRLSTATUS;
 typedef struct{
     bool bLoded;
     int nResId;
@@ -46,11 +50,9 @@ typedef struct{
 }RESINFO;
 
 typedef struct{
-    EMCOLORFORMAL emFormal;
-    union{
-        U16 u16Color[2];
-        U32 u32Color[2];
-    }COLORS;
+
+        U16 u16fg;
+        U16 u16bg;
 }COLORINFO;
 
 typedef struct{
@@ -65,48 +67,47 @@ typedef struct{
 }CTREVENT,*pCTREVENT;
 
 typedef struct{
-    HWND hWnd;
-    RECT pos;
+    HANDLE ctrlHdl;
+    RECT pos_s;
     EMCONTROLTYPE emCtrType;
+	EMCTRLSTATUS emCtrlStatus;
     RESINFO ctrRes;
     COLORINFO ctrColorInfo;
     pCTREVENT ctrEvent;
-	void *next;
     U32   u32Value;
     bool  bRedraw;
 }CONTROL,*pCONTROL;
 
 typedef struct{
-    CONTROL *aControl;
+    pCONTROL pControl;
     int nControlNum;
 }WIDGET_S,*p_WIDGET_S;
 
-typedef struct{
-	pWINDOW_S hWndParent;
-	pWINDOW_S hwndChild;
-	pWINDOW_S hWndAbove;
-	pWINDOW_S hWndBottom;
-}WIN_RELATION_S,*pWIN_RELATION_S;
-
 typedef enum{
-	WIN_HIDE,
-	WIN_FOCUS,
-	WIN_VISIABLE,
-	WIN_DISABLE,
+	WIN_STATUS_HIDE,
+	WIN_STATUS_FOCUS,
+	WIN_STATUS_VISIABLE,
+	WIN_STATUS_DISABLE,
+	WIN_STATUS_NORMAL,
 }EMWINSTATUS;
 
-typedef struct{
+typedef struct WND{
     HWND hWndId;
+	HANDLE winHdl;
 	pthread_t msgThreadId;
 	int  msgid;
-    pWIN_RELATION_S pWINRelationInfo_s;
+	struct WND *hWndParent;
+	struct WND *hwndChild;
+	struct WND *hWndAbove;
+	struct WND *hWndBottom;
     RECT pos_s;
     EMWINTYPE wintype_e;
     EMWINSTATUS winStatus_e;
-    RESINFO winRes_s;    
+    RESINFO winRes_s;
+	U8 *szctrlRes;
     bool    bRedraw;
 	pWinFunc pfOnCreate;
-    pWinFunc pfOnEvent;
+    pWinEvent pfOnEvent;
 	pWinFunc pfRelease;
     WIDGET_S winWidget_s;
     void *pWinPrivate;
@@ -120,6 +121,12 @@ typedef enum{
 	WIN_WIN_MEMALLOCFAIL,
 	WIN_CTRL_NOTEXIST,
 }WINRETSTATUS_E;
+pWINDOW_S getCurWnd();
+pWINDOW_S getOSDWnd();
+WINRETSTATUS_E windowInit();
+WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param);
+WINRETSTATUS_E closeWindow(HWND hWndId);
+void windowFlush();
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////

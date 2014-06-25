@@ -1,0 +1,21 @@
+
+TOPDIR  ?=$(PWD)/..
+INC_DIR :=-I$(TOPDIR)/include
+INC_DIR +=-I$(TOPDIR)/graphics/include
+INC_DIR +=-I$(TOPDIR)/common/include
+INC_DIR +=-I$(TOPDIR)/lib/include
+
+
+BOARD_LIB_DIR ?=$(TOPDIR)/lib/lib
+USER_LIB_DIR ?=$(TOPDIR)/$(HIARCH)
+
+vpath	%.a	$(TOPDIR)/ilb/lib
+vpath	%.a	$(TOPDIR)/$(PLATFORM)
+vpath	%.h	$(TOPDIR)/include/
+vpath	%.h	$(TOPDIR)/graphics/include
+
+BOARD_LIB :=$(wildcard $(BOARD_LIB_DIR)/*.a)
+USER_LIB  :=$(wildcard $(USER_LIB_DIR)/*.a)
+
+
+CFLAGS := -g  $(INC_DIR)   -lpthread -lm 

@@ -1,0 +1,24 @@
+
+PLATFORM :=${HIARCH}
+PLATFORM ?=hi3520d
+TOP_DIR :=$(PWD)
+LD_LIBPATH :?=lib/lib
+LD_LIBPATH +=$(PLATFORM)
+ifeq ($(PLATFORM),hi3520d)
+	CROSS_COMPILE=arm-hisiv100nptl-linux-
+else
+	CROSS_COMPILE=arm-hisiv200-linux-
+endif
+
+install:
+	cd graphics;make CROSS_COMPILE=$(CROSS_COMPILE)
+	cd test; make LIBPATH=$(LD_LIBPATH)  CROSS_COMPILE=$(CROSS_COMPILE)
+testing:
+	cd winForm; make CROSS_COMPILE=$(CROSS_COMPILE)
+	cd common; make CROSS_COMPILE=$(CROSS_COMPILE)
+	cd graphics;make CROSS_COMPILE=$(CROSS_COMPILE)
+	cd test; make LIBPATH=$(LD_LIBPATH)  CROSS_COMPILE=$(CROSS_COMPILE)
+
+.PHONY : clean
+clean:
+	cd test && make clean

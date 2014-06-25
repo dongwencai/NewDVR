@@ -1,30 +1,9 @@
-#define __IN
-#define __OUT
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdlib.h>
 #include "semaphore.h"
-typedef unsigned int __u32;
-typedef enum{
-	QUE_SUC,
-	QUE_FAILT,
-	QUE_NOTFOUND,
-	QUE_MSGFULL,
-	QUE_MSGEMPTY,
-}QUEUE_STATUS;
-
-typedef struct {
-	void *data;
-	void *next;
-}list;
-
-
-		
-typedef struct{
-	int message;
-	void *param;
-}MSG;
+#include "sw_queue.h"
 /*
 typedef struct{
 	funcptr readmsg;
@@ -34,27 +13,9 @@ typedef struct{
 }MSGOPT;
 */
 
-typedef struct{	
-	pthread_mutex_t msglock;
-	sem_t  msgwait;
-	int queueid;
-	MSG	*msg;
-	int size;
-	int readmsg_ops;
-	int writemsg_ops;
-//	MSGOPT opt;
-	__u32 reserve;
-}MSGQUEUE;
+
 list *MsgQueuehead=NULL;
 static sem_t g_opslock;
-
-QUEUE_STATUS InitQueue();
-QUEUE_STATUS CreateMsgQueue(__OUT int *queueid,int msgsize);
-QUEUE_STATUS ReleaseMsgQueue(int queueid);
-QUEUE_STATUS SendMsg(int queueid,MSG msg);
-QUEUE_STATUS RecvMsg(int queueid,__OUT MSG *msg);
-QUEUE_STATUS ReleaseAllMsgQueue();
-
 static list *LookUpMsgQueue(int queueid);
 static QUEUE_STATUS	DelMsgQueueFromList(__IN list *link);
 static int AllocQueueId();
@@ -277,6 +238,7 @@ QUEUE_STATUS InitQueue()
 	return QUE_SUC;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
+#if 0
 void *product(void *param)
 {
     int queueid=*(int *)param,i=1;
@@ -348,4 +310,6 @@ int main()
     pthread_join(thread5,NULL);
     return 0;
 }
+#endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
+
