@@ -15,7 +15,7 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s);
 static WINRETSTATUS_E lookUpWndRep(int nWndId,__OUT pWINDOW_S pWnd_s);
 static HWND allocWndId();
 static HANDLE allocCtrlId(pWINDOW_S pWnd_s);
-
+int fillRectangle(POINT_S leftTop_s,POINT_S rightBottom_s,U16 u16Color);
 extern DC_S gdc;
 pWINDOW_S pOSD=NULL;
 pWINDOW_S pCurWnd=NULL;
@@ -31,48 +31,20 @@ pWINDOW_S getOSDWnd()
 
 WINRETSTATUS_E windowInit()
 {
-	pWINREPINFO_S pWndRepInfo=NULL;
 	if(!pOSD)
 	{
-		pOSD=(pWINDOW_S)malloc(sizeof(WINDOW_S));
-		memcpy(pOSD,&windowArray[0],sizeof(WINDOW_S));
+		createWindow(NULL, OSD, NULL);
 	}
-	if(!pOSD->pWinPrivate)
-	{
-		pWndRepInfo=(pWINREPINFO_S)malloc(sizeof(WINREPINFO_S));
-		if(pWndRepInfo)
-		{
-			memset(pWndRepInfo,0x0,sizeof(WINREPINFO_S));
-			pWndRepInfo->nWndNum=sizeof(windowArray)/sizeof(windowArray[0]);
-			pWndRepInfo->pWndArray=&windowArray;
-			pOSD->pWinPrivate=(pWINREPINFO_S)pWndRepInfo;
-		}
-		else
-		{
-			return WIN_WIN_MEMALLOCFAIL;
-		}
-	}
-	pOSD->hWndParent=NULL;
-	pOSD->hWndBottom=NULL;
-	showWindow(pOSD);
-	pCurWnd=pOSD;
 	return WIN_WIN_SUC;
 }
 static WINRETSTATUS_E lookUpWndRep(int nWndId,__OUT pWINDOW_S pWnd_s)
 {
-	int cnt;
-	pWINREPINFO_S pWndInfo=NULL;
-	pWINDOW_S pOsd=getOSDWnd();
-	if(!pOsd)
+	int cnt,nWndNum=sizeof(windowArray)/sizeof(windowArray[0]);
+	for(cnt=0;cnt<nWndNum;cnt++)
 	{
-		return WIN_WIN_NOTEXIST;
-	}
-	pWndInfo=(pWINREPINFO_S)pOsd->pWinPrivate;
-	for(cnt=0;cnt<pWndInfo->nWndNum;cnt++)
-	{
-		if(pWndInfo->pWndArray[cnt].nwndid==nWndId)
+		if(windowArray[cnt].nwndid==nWndId)
 		{
-			 *pWnd_s=*pWndInfo->pWndArray[cnt].wnd_s;
+			 *pWnd_s=*windowArray[cnt].wnd_s;
 			 return WIN_WIN_SUC;
 		}
 		
@@ -98,15 +70,34 @@ static HANDLE allocWndId()
 {
 	HANDLE id=0;
 	pWINDOW_S p_Osd=getOSDWnd();
-	while(p_Osd)
+	if(!p_Osd)
 	{
-		if((id=(rand()<<16))==0)	continue;
-		if(p_Osd->winHdl==id)
+	
+		while(1)
 		{
-			p_Osd=getOSDWnd();
-			continue;
+			id=rand()<<16;
+			if(!id)	continue;
+			return id;
 		}
-		p_Osd=p_Osd->hWndAbove;
+	}
+	else
+	{
+		while(p_Osd)
+		{
+			
+			if(!id)
+			{
+				id=rand()<<16;
+				continue;
+			}
+			if(p_Osd->winHdl==id)
+			{
+				id=rand()<<16;
+				p_Osd=getOSDWnd();
+				continue;
+			}
+			p_Osd=p_Osd->hWndAbove;
+		}
 	}
 	return id;
 }
@@ -118,14 +109,15 @@ static HANDLE allocCtrlId(pWINDOW_S pWnd_s)
 	{
 		int cnt;
 		temp=pWnd_s->winWidget_s.pControl;
+printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,pWnd_s->winWidget_s.nControlNum);
 		while(1)
 		{
 			id=((rand()<<16)>>16)|pWnd_s->winHdl;
 			for(cnt=0;cnt<pWnd_s->winWidget_s.nControlNum;cnt++)
 			{
-				if(temp[cnt].ctrlHdl==id)	break;
+				if(temp[cnt].ctrlHdl==id)	continue;
 			}
-			if(cnt==pWnd_s->winWidget_s.nControlNum-1)
+			if(cnt==pWnd_s->winWidget_s.nControlNum)
 				break;
 			continue;
 		}
@@ -166,15 +158,21 @@ WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 	{
 		return ret;
 	}
+	pNewWnd_s->winStatus_e=WIN_STATUS_FOCUS;
+	pNewWnd_s->hWndId=newWnd;
 	pNewWnd_s->winHdl=allocWndId();
-printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,pNewWnd_s->winHdl);
+	if(pNewWnd_s->wintype_e==WIN_CONTEXT)
+	{
+		MS_PARAM ms_param_s=*(pMS_PARAM)param;
+		pNewWnd_s->pWinPrivate=&ms_param_s.param;
+	}
 	if(readCtrl(pNewWnd_s) !=WIN_WIN_SUC)
 		return WIN_WIN_FAIL;
 	if(pNewWnd_s->pfOnCreate)
 	{
 		pNewWnd_s->pfOnCreate(pNewWnd_s,param);
 	}
-    if(CreateMsgQueue(pNewWnd_s->msgid,10)==QUE_SUC)
+    if(CreateMsgQueue(&pNewWnd_s->msgid,10)==QUE_SUC)
     {
         printf("Queue created success!\n");
     }
@@ -183,35 +181,44 @@ printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,pNewWnd_s->winHdl);
         printf("Queue created failt!\n");
         return WIN_WIN_MSG_CREATE_FAIL;
     }
+	
 	if(pNewWnd_s->pfOnEvent)
 	{
 		int ret;
 
-		ret=pthread_create(pNewWnd_s->msgThreadId,NULL,getMsg,pNewWnd_s);
+		ret=pthread_create(&pNewWnd_s->msgThreadId,NULL,getMsg,pNewWnd_s);
 		if(ret)
 		{
 			if(pNewWnd_s->pfRelease)
 			{
 				pNewWnd_s->pfRelease(pNewWnd_s,param);
+				free(pNewWnd_s);
 			}
 			return WIN_WIN_FAIL;
 		}
 	}
+	
+	if(!parent)
+		pOSD=pNewWnd_s;
+	else
+		parent->hWndAbove=pNewWnd_s;
+	
 	pNewWnd_s->hWndBottom=parent;
 	pNewWnd_s->hWndAbove=NULL;
 	pNewWnd_s->hwndChild=NULL;
 	pNewWnd_s->hWndParent=NULL;
-	parent->hWndAbove=pNewWnd_s;
+	pCurWnd=pNewWnd_s;	
 	showWindow(pNewWnd_s);
 }
 
-WINRETSTATUS_E closeWindow(HWND hWndId)
+WINRETSTATUS_E closeWindow(HANDLE winHdl)
 {
 	pWINDOW_S pWnd_s=NULL;	
-	pWnd_s=lookUpWnd(hWndId);
-	if(!pWnd_s)
+	pWnd_s=lookUpWnd(winHdl);
+	if(pWnd_s)
 	{
-		pWnd_s->hWndBottom=NULL;
+		pWnd_s->hWndBottom->hWndAbove=NULL;
+		pCurWnd=pWnd_s->hWndBottom;
 		if(pWnd_s->pfRelease)
 		{
 			pWnd_s->pfRelease(pWnd_s,NULL);
@@ -260,20 +267,42 @@ int openCldWindow()
 int showWindow(pWINDOW_S pWnd)
 {
 	int cnt;
+	POINT_S lT_s=pWnd->pos_s.lTop,rB_s=pWnd->pos_s.rBottom;
 	switch(pWnd->wintype_e)
 	{
 		case WIN_NORMAL:
+		case WIN_CONTEXT:
 		case WIN_TOP:
-			 drawRectangle(pWnd->pos_s.lTop, pWnd->pos_s.rBottom, 0xfc00, 4);
+			 drawRectangle(pWnd->pos_s.lTop, pWnd->pos_s.rBottom, pWnd->winColorInfo.u16fg, 1);
+			 lT_s.s32X +=1;
+			 lT_s.s32Y +=1;
+			 fillRectangle(lT_s, rB_s, pWnd->winColorInfo.u16bg);
+			 break;
 	}
 	for(cnt=0;cnt<pWnd->winWidget_s.nControlNum;cnt++)
 	{
 		if(pWnd->winWidget_s.pControl[cnt].emCtrlStatus !=CTRL_STATUS_INVISABLE)
+		{
 			showCtrl(&pWnd->winWidget_s.pControl[cnt]);
+		}
+	}
+}
+int fillRectangle(POINT_S leftTop_s,POINT_S rightBottom_s,U16 u16Color)
+{
+	int cnt;
+	POINT_S lt=leftTop_s,rb;
+	rb.s32X=rightBottom_s.s32X;
+	rb.s32Y=lt.s32Y;
+	for(cnt=leftTop_s.s32Y;cnt<rightBottom_s.s32Y;cnt++)
+	{
+		lt.s32Y =cnt;
+		rb.s32Y =cnt;
+		drawLine(lt,rb,u16Color,1);
 	}
 }
 int showCtrl(pCONTROL pCtrl_s)
 {
+	POINT_S lT_s=pCtrl_s->pos_s.lTop,rB_s=pCtrl_s->pos_s.rBottom;
 	switch(pCtrl_s->emCtrType)
 	{
 		case	LINE:
@@ -286,7 +315,12 @@ int showCtrl(pCONTROL pCtrl_s)
 		case	COMBOX:
 		case	SLIDER:
 		case	PROCESS:
-			drawRectangle(pCtrl_s->pos_s.lTop, pCtrl_s->pos_s.rBottom, pCtrl_s->ctrColorInfo.u16fg, 4);
+			drawRectangle(pCtrl_s->pos_s.lTop, pCtrl_s->pos_s.rBottom, pCtrl_s->ctrColorInfo.u16fg, 1);
+			lT_s.s32X +=1;
+			lT_s.s32Y +=1;
+			//rB_s.s32X -=1;
+			//rB_s.s32Y -=1;
+			fillRectangle(lT_s, rB_s, pCtrl_s->ctrColorInfo.u16bg);
 			break;
 		default:
 			printf("error:ctrl_s.emCtrType\t%d\n",pCtrl_s->emCtrType);
@@ -313,6 +347,7 @@ pCONTROL lookUpCtrlInWnd(pWINDOW_S pWnd_s,HWND hWndCtrlId)
 
 static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 {
+	printf("%s\t%d\n",__FUNCTION__,__LINE__);
 	if(pWnd_s->szctrlRes)
 	{
 		
@@ -321,7 +356,13 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 	{
 		WIDGET_S widget;
 		int cnt;
+		if(pWnd_s->wintype_e==WIN_CONTEXT)
+		{
+			int nCtextId=*(int *)pWnd_s->pWinPrivate;
+			lookUpcontextRep(nCtextId,&pWnd_s->winWidget_s);
+		}
 		widget.nControlNum=pWnd_s->winWidget_s.nControlNum;
+printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,widget.nControlNum);		
 		widget.pControl=(pCONTROL)malloc(sizeof(pWnd_s->winWidget_s.nControlNum)*sizeof(CONTROL));
 		if(!widget.pControl)
 		{
@@ -330,7 +371,10 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 		memcpy(widget.pControl,pWnd_s->winWidget_s.pControl,sizeof(pWnd_s->winWidget_s.nControlNum)*sizeof(CONTROL));
 		for(cnt=0;cnt<widget.nControlNum;cnt++)
 		{
+			printf("%s\t%d\n",__FUNCTION__,__LINE__);
 			widget.pControl[cnt].ctrlHdl=allocCtrlId(pWnd_s);
+			printf("%s\t%d\n",__FUNCTION__,__LINE__);
+
 		}
 		pWnd_s->winWidget_s=widget;
 	}

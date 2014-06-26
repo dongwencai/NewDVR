@@ -42,11 +42,19 @@
 #include "sw_fb.h"
 #include "sw_types.h"
 #include "draw.h"
+#include "window.h"
+#include "loadbmp.h"
+
 #define sw_VO_DEV_DHD0 0
 #define sw_SYS_ALIGN_WIDTH      64
 #define sw_PIXEL_FORMAT         PIXEL_FORMAT_YUV_SEMIPLANAR_420
 #define ALIGN_BACK(x, a)              ((a) * (((x) / (a))))
-
+#define DEV_MOUSE	"/dev/mice"
+static struct fb_bitfield g_r16 = {10, 5, 0};
+static struct fb_bitfield g_g16 = {5, 5, 0};
+static struct fb_bitfield g_b16 = {0, 5, 0};
+static struct fb_bitfield g_a16 = {15, 1, 0};
+HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData);
 typedef enum sw_vi_mode_e
 {   /* For Hi3531 or Hi3532 */
     sw_VI_MODE_1_D1 = 0,
@@ -153,7 +161,10 @@ HI_S32 sw_HIFB_VO_Start(void)
 
     return 0;
 }
-
+int getResolution()
+{
+	return 1280<<16|720;
+}
 HI_S32 sw_HIFB_VO_Stop(void)
 {
     if (HI_SUCCESS != HI_MPI_VO_DisableVideoLayer(VoDev))
@@ -211,7 +222,23 @@ typedef struct hiPTHREAD_HIFB_sw
 } PTHREAD_HIFB_sw_INFO;
 
 
+HI_S32 SAMPLE_HIFB_LoadBmp(const char *filename, HI_U8 *pAddr)
+{
+    OSD_SURFACE_S Surface;
+    OSD_BITMAPFILEHEADER bmpFileHeader;
+    OSD_BITMAPINFO bmpInfo;
 
+    if (GetBmpInfo(filename,&bmpFileHeader,&bmpInfo) < 0)
+    {
+        printf("GetBmpInfo err!\n");
+        return HI_FAILURE;
+    }
+
+    Surface.enColorFmt = OSD_COLOR_FMT_RGB1555;
+
+    CreateSurfaceByBitMap(filename,&Surface,pAddr);
+    return HI_SUCCESS;
+}
 HI_VOID *sw_HIFB_REFRESH(void *pData)
 {
     HI_S32 s32Ret = HI_SUCCESS;
@@ -228,6 +255,7 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
     PTHREAD_HIFB_sw_INFO *pstInfo;
     pstInfo = (PTHREAD_HIFB_sw_INFO *)pData;
     HIFB_COLORKEY_S stColorKey;
+printf("%s\t%d\n",__FUNCTION__,__LINE__);	
     switch (pstInfo->layer)
     {
     case 0 :
@@ -250,7 +278,6 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
         strcpy(file, "/dev/fb0");
         break;
     }
-
     pstInfo->fd = open(file, O_RDWR, 0);
     if (pstInfo->fd < 0)
     {
@@ -275,6 +302,7 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
         close(pstInfo->fd);
         return HI_NULL;
     }
+
     s32Ret = ioctl(pstInfo->fd, FBIOGET_VSCREENINFO, &stVarInfo);
     if (s32Ret < 0)
     {
@@ -287,6 +315,7 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
         printf("set screen original show position failed!\n");
         return HI_NULL;
     }
+	
     maxW = 1280;
     maxH = 720;
     stVarInfo.xres = stVarInfo.xres_virtual = maxW;
@@ -297,28 +326,30 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
         printf("PUT_VSCREENINFO failed!\n");
         return HI_NULL;
     }
+
     switch (pstInfo->ctrlkey)
     {
-    case 0 :
-    {
-        stLayerInfo.BufMode = HIFB_LAYER_BUF_ONE;
-        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
-        break;
+	    case 0 :
+	    {
+	        stLayerInfo.BufMode = HIFB_LAYER_BUF_ONE;
+	        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
+	        break;
+	    }
+
+	    case 1 :
+	    {
+	        stLayerInfo.BufMode = HIFB_LAYER_BUF_DOUBLE;
+	        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
+	        break;
+	    }
+
+	    default:
+	    {
+	        stLayerInfo.BufMode = HIFB_LAYER_BUF_NONE;
+	        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
+	    }
     }
 
-    case 1 :
-    {
-        stLayerInfo.BufMode = HIFB_LAYER_BUF_DOUBLE;
-        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
-        break;
-    }
-
-    default:
-    {
-        stLayerInfo.BufMode = HIFB_LAYER_BUF_NONE;
-        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
-    }
-    }
     s32Ret = ioctl(pstInfo->fd, FBIOPUT_LAYER_INFO, &stLayerInfo);
     if (s32Ret < 0)
     {
@@ -337,6 +368,7 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
         printf("allocate memory (maxW*maxH*2 bytes) failed\n");
         return HI_NULL;
     }
+	
     stCanvasBuf.stCanvas.u32Height = maxH;
     stCanvasBuf.stCanvas.u32Width = maxW;
     stCanvasBuf.stCanvas.u32Pitch = maxW*2;
@@ -352,10 +384,14 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
     {
 		
 		{
-			POINT_S begin_s,end_s;
-			begin_s.s32X=60;begin_s.s32Y=60;
-			end_s.s32X=160;end_s.s32Y=160;
-			drawRectangle(begin_s,end_s,HIFB_RED_1555,2);
+			pWINDOW_S pCur=NULL;
+			MS_PARAM ms_param_s={{50,50},0,0};
+			windowInit();
+			pCur=getCurWnd();
+			createWindow(pCur, 1, &ms_param_s);
+			pCur=getCurWnd();
+			//closeWindow(pCur->winHdl);
+			
     	}
 
         stCanvasBuf.UpdateRect.x = 0;
@@ -371,7 +407,6 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
 
     }
 	while(1);
-    close(pstInfo->fd);
     return HI_NULL;
 }
 HI_S32 sw_COMM_SYS_Init(VB_CONF_S *pstVbConf)
@@ -586,7 +621,7 @@ initFb()
 }
 int main(int argc, char *argv[])
 {
-    pthread_t phifb0 = -1;
+    pthread_t phifb0 = -1,phifb1=-1;
     PTHREAD_HIFB_sw_INFO stInfo0;
     PTHREAD_HIFB_sw_INFO stInfo1;
     VO_PUB_ATTR_S stPubAttr;
@@ -597,7 +632,8 @@ int main(int argc, char *argv[])
     sw_VO_MODE_E stVoMode = VO_MODE_1MUX;
     HI_BOOL bExtendedMode=HI_TRUE;
     HI_CHAR ch;
-initFb();
+	initFb();
+	InitQueue();
     memset(&stVbConf, 0, sizeof(VB_CONF_S));
     stVbConf.u32MaxPoolCnt             = 16;
     stVbConf.astCommPool[0].u32BlkSize = 720*576*2;
@@ -632,15 +668,11 @@ initFb();
     stInfo0.layer   =  0;
     stInfo0.fd      = -1;
     stInfo0.ctrlkey =  2;
-    if (HI_TRUE == bExtendedMode)
-    {
-        pthread_create(&phifb0,0,sw_HIFB_REFRESH,(void *)(&stInfo0));
-    }
-
-
+	sw_HIFB_REFRESH(&stInfo0);
     stInfo1.layer   =  3;
     stInfo1.fd      = -1;
     stInfo1.ctrlkey =  3;
+
     if (HI_SUCCESS != HI_MPI_VO_GfxLayerUnBindDev(GRAPHICS_LAYER_HC0, sw_VO_DEV_DHD0))
     {
         printf("%s: Graphic UnBind to VODev failed!,line:%d\n", __FUNCTION__, __LINE__);
@@ -656,10 +688,239 @@ initFb();
         sw_HIFB_VO_Stop();
         return -1;
     }
-	pthread_join(phifb0,0);
-
+	pthread_create(&phifb1,0,SAMPLE_HIFB_PANDISPLAY,(void *)(&stInfo1));
+	
+	pthread_join(phifb1,0);
+	while(1);
     HI_MPI_SYS_Exit();
     HI_MPI_VB_Exit();
     return 0;
+}
+
+
+HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
+{
+    HI_S32 i,x,y,s32Ret;
+    TDE_HANDLE s32Handle;
+    struct fb_fix_screeninfo fix;
+    struct fb_var_screeninfo var;
+    HI_U32 u32FixScreenStride = 0;
+    unsigned char *pShowScreen;
+    unsigned char *pHideScreen;
+    HI_U32 u32HideScreenPhy = 0;
+    HI_U16 *pShowLine;
+    HIFB_ALPHA_S stAlpha;
+    HIFB_POINT_S stPoint = {40, 112};
+    char file[12] = "/dev/fb0";
+    HI_BOOL g_bCompress = HI_FALSE;
+
+    char image_name[128];
+    HI_U8 *pDst = NULL;
+    HI_BOOL bShow;
+    PTHREAD_HIFB_sw_INFO *pstInfo;
+    HIFB_COLORKEY_S stColorKey;
+    TDE2_RECT_S stSrcRect,stDstRect;
+    TDE2_SURFACE_S stSrc,stDst;
+    HI_U32 Phyaddr;
+    HI_VOID *Viraddr;
+	U8 cPollData[4];
+	struct pollfd  stPoll[1];
+    if (HI_NULL == pData)
+    {
+        return HI_NULL;
+    }
+    pstInfo = (PTHREAD_HIFB_sw_INFO *)pData;
+    switch (pstInfo->layer)
+    {
+    case 0 :
+        strcpy(file, "/dev/fb0");
+        break;
+    case 1 :
+        strcpy(file, "/dev/fb1");
+        break;
+    case 2 :
+        strcpy(file, "/dev/fb2");
+        break;
+    case 3 :
+        strcpy(file, "/dev/fb3");
+        break;
+    default:
+        strcpy(file, "/dev/fb0");
+        break;
+    }
+
+    pstInfo->fd = open(file, O_RDWR, 0);
+    if (pstInfo->fd < 0)
+    {
+        printf("open %s failed!\n",file);
+        return HI_NULL;
+    }
+	{
+		U8 imps2_param [] = {243,200,243,100,243,80};
+		int fd = open(DEV_MOUSE, O_RDWR);
+		if (fd > 0)
+		{
+			write(fd, imps2_param, sizeof (imps2_param));
+			stPoll[0].fd = fd;
+			stPoll[0].events = POLLIN;
+		}
+		else
+		{
+			printf("open %s fail\n", DEV_MOUSE);
+		}
+	}
+    bShow = HI_FALSE;
+    if (ioctl(pstInfo->fd, FBIOPUT_SHOW_HIFB, &bShow) < 0)
+    {
+        printf("FBIOPUT_SHOW_HIFB failed!\n");
+        return HI_NULL;
+    }
+    switch (pstInfo->ctrlkey)
+    {
+    case 3:
+    {
+        stPoint.s32XPos = 150;
+        stPoint.s32YPos = 150;
+    }
+    break;
+    default:
+    {
+        stPoint.s32XPos = 0;
+        stPoint.s32YPos = 0;
+    }
+    }
+
+    if (ioctl(pstInfo->fd, FBIOPUT_SCREEN_ORIGIN_HIFB, &stPoint) < 0)
+    {
+        printf("set screen original show position failed!\n");
+        close(pstInfo->fd);
+        return HI_NULL;
+    }
+
+    stAlpha.bAlphaEnable = HI_FALSE;
+    stAlpha.bAlphaChannel = HI_FALSE;
+    stAlpha.u8Alpha0 = 0x80;
+    stAlpha.u8Alpha1 = 0xff;
+    stAlpha.u8GlobalAlpha = 0x80;
+    if (ioctl(pstInfo->fd, FBIOPUT_ALPHA_HIFB,  &stAlpha) < 0)
+    {
+        printf("Set alpha failed!\n");
+        close(pstInfo->fd);
+        return HI_NULL;
+    }
+    stColorKey.bKeyEnable = HI_TRUE;
+    stColorKey.u32Key = 0x7fff;
+    if (ioctl(pstInfo->fd, FBIOPUT_COLORKEY_HIFB, &stColorKey) < 0)
+    {
+        printf("FBIOPUT_COLORKEY_HIFB!\n");
+        close(pstInfo->fd);
+        return HI_NULL;
+    }
+
+    if (ioctl(pstInfo->fd, FBIOGET_VSCREENINFO, &var) < 0)
+    {
+        printf("Get variable screen info failed!\n");
+        close(pstInfo->fd);
+        return HI_NULL;
+    }
+
+    usleep(4*1000*1000);
+    switch (pstInfo->ctrlkey)
+    {
+	    case 3:
+	    {
+	        var.xres_virtual = 24;
+	        var.yres_virtual = 24;
+	        var.xres = 24;
+	        var.yres = 24;
+	    }
+	    break;
+	    default:
+	    {
+	        var.xres_virtual = 1280;
+	        var.yres_virtual = 720*2;
+	        var.xres = 1280;
+	        var.yres = 720;
+	    }
+    }
+
+    var.transp= g_a16;
+    var.red = g_r16;
+    var.green = g_g16;
+    var.blue = g_b16;
+    var.bits_per_pixel = 16;
+    var.activate = FB_ACTIVATE_NOW;
+
+    if (ioctl(pstInfo->fd, FBIOPUT_VSCREENINFO, &var) < 0)
+    {
+        printf("Put variable screen info failed!\n");
+        close(pstInfo->fd);
+        return HI_NULL;
+    }
+
+    if (ioctl(pstInfo->fd, FBIOGET_FSCREENINFO, &fix) < 0)
+    {
+        printf("Get fix screen info failed!\n");
+        close(pstInfo->fd);
+        return HI_NULL;
+    }
+    u32FixScreenStride = fix.line_length;  
+    pShowScreen = mmap(HI_NULL, fix.smem_len, PROT_READ|PROT_WRITE, MAP_SHARED, pstInfo->fd, 0);
+    if (MAP_FAILED == pShowScreen)
+    {
+        printf("mmap framebuffer failed!\n");
+        close(pstInfo->fd);
+        return HI_NULL;
+    }
+
+    memset(pShowScreen, 0x00, fix.smem_len);
+
+    bShow = HI_TRUE;
+    if (ioctl(pstInfo->fd, FBIOPUT_SHOW_HIFB, &bShow) < 0)
+    {
+        printf("FBIOPUT_SHOW_HIFB failed!\n");
+        munmap(pShowScreen, fix.smem_len);
+        return HI_NULL;
+    }
+    switch (pstInfo->ctrlkey)
+    {
+    case 3:
+    {
+		U16* pbuf=NULL;
+        SAMPLE_HIFB_LoadBmp("cursor.bmp",pShowScreen);
+        if (ioctl(pstInfo->fd, FBIOPAN_DISPLAY, &var) < 0)
+        {
+            printf("FBIOPAN_DISPLAY failed!\n");
+            munmap(pShowScreen, fix.smem_len);
+            close(pstInfo->fd);
+            return HI_FALSE;
+        }
+        printf("show cursor\n");
+        sleep(2);
+		while(1)
+		{
+			int len=0;
+			if (poll(stPoll, 1, 1) > 0)
+			{
+				if (stPoll[0].revents)
+				{
+					len = read(stPoll[0].fd, cPollData, 4);
+printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
+					stPoint.s32XPos +=(cPollData[1]>127?cPollData[1]-256:cPollData[1]);
+					stPoint.s32YPos -=(cPollData[2]>127?cPollData[2]-256:cPollData[2]);
+					stPoint.s32XPos =stPoint.s32XPos<0?0:stPoint.s32XPos;
+					stPoint.s32XPos =stPoint.s32XPos>1280?1280:stPoint.s32XPos;
+					stPoint.s32YPos =stPoint.s32YPos<0?0:stPoint.s32YPos;
+					stPoint.s32YPos =stPoint.s32YPos>720?720:stPoint.s32YPos;
+					ioctl(pstInfo->fd, FBIOPUT_SCREEN_ORIGIN_HIFB, &stPoint);
+				}
+			}
+		}
+    }
+    break;
+    }
+    munmap(pShowScreen, fix.smem_len);
+    bShow = HI_FALSE;
+    return HI_NULL;
 }
 

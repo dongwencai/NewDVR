@@ -8,8 +8,8 @@ void *osdEvent(void *pWnd_s,void *param);
 void *osdRelease(void *pWnd_s,void *param);
 
 static CONTROL  osdCtrl[]={
-	MK_LINE(600, 0, 600, 720, 0x7c00, 4),
-	MK_LINE(0,350,1280,350,0x7c00,4),	
+	MK_LINE(600, 0, 600, 720, 0xfc00, 4),
+	MK_LINE(0,350,1280,350,0xfc00,4),	
 };
 WINDOW_S osd_s={
 	.hWndId=0,
@@ -19,6 +19,7 @@ WINDOW_S osd_s={
 	.pfOnEvent=osdEvent,
 	.pfRelease=osdRelease,
 	.winWidget_s={osdCtrl,sizeof(osdCtrl)/sizeof(osdCtrl[0])},
+	.pWinPrivate=NULL,
 };
 
 void *osdCreate(void *pWnd_s,void *param)
@@ -38,5 +39,5 @@ void *osdEvent(void *pWnd_s,void *param)
 }
 void *osdRelease(void *pWnd_s,void *param)
 {
-
+	return HI_NULL;
 }

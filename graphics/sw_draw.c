@@ -15,7 +15,7 @@ int drawLine(POINT_S begin_s,POINT_S end_s,U16 u16Color,int nLineWidth)
 	ax=(bx<ex?1:-1);
 	ay=(by<ey?1:-1);
 	nStride =gdc.pSzWin.nW;
-	pPhyAddr=gdc.pHdOsdFb->pMappedAddr;
+	pPhyAddr=gdc.pWinFb->pMappedAddr;
 
 	if(bx==ex)				//Ğ±ÂÊ²»´æÔÚ
 	{

@@ -11,14 +11,15 @@ LIB_LIST :=$(BOARD_LIB)
 SRC  := $(wildcard *.c) 
 OBJ  := $(SRC:%.c=%.o)
 
-TARGET := $(OBJ:%.o=%)
 .PHONY : clean all
 
-all: $(TARGET)
+all: $(OBJ) test
 
-#$(TARGET):%:%.o 
 test: *.o
 	$(CC) $(CFLAGS) -o $@ $^ -Wl,--whole-archive $(LIB_LIST) -Wl,--no-whole-archive  
+$(OBJ):%.o:%.c
+	$(CC) $(CFLAGS) -c  $^ -o $@ 
+
 
 
 clean:

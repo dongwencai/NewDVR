@@ -18,4 +18,4 @@ BOARD_LIB :=$(wildcard $(BOARD_LIB_DIR)/*.a)
 USER_LIB  :=$(wildcard $(USER_LIB_DIR)/*.a)
 
 
-CFLAGS := -g  $(INC_DIR)   -lpthread -lm 
+CFLAGS := -Wall -g  $(INC_DIR) -lpthread -lm 

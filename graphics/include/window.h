@@ -80,7 +80,7 @@ typedef struct{
 typedef struct{
     pCONTROL pControl;
     int nControlNum;
-}WIDGET_S,*p_WIDGET_S;
+}WIDGET_S,*pWIDGET_S;
 
 typedef enum{
 	WIN_STATUS_HIDE,
@@ -104,6 +104,7 @@ typedef struct WND{
     EMWINSTATUS winStatus_e;
     RESINFO winRes_s;
 	U8 *szctrlRes;
+	COLORINFO winColorInfo;
     bool    bRedraw;
 	pWinFunc pfOnCreate;
     pWinFunc pfOnEvent;
@@ -120,11 +121,17 @@ typedef enum{
 	WIN_WIN_MEMALLOCFAIL,
 	WIN_CTRL_NOTEXIST,
 }WINRETSTATUS_E;
+
+typedef struct{
+	POINT_S pos_s;
+	int mesg;
+	U32 param;
+}MS_PARAM,*pMS_PARAM;
 pWINDOW_S getCurWnd();
 pWINDOW_S getOSDWnd();
 WINRETSTATUS_E windowInit();
 WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param);
-WINRETSTATUS_E closeWindow(HWND hWndId);
+WINRETSTATUS_E closeWindow(HANDLE hWndId);
 void windowFlush();
 #endif
 
