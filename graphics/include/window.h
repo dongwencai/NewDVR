@@ -9,6 +9,8 @@ typedef struct{
 	POINT_S rBottom;
 }RECT,*pRECT;
 
+#define inArea(pos,rect)	((pos.s32X>rect.lTop.s32X&&pos.s32X<rect.rBottom.s32X)&&(pos.s32Y>rect.lTop.s32Y&&pos.s32Y<rect.rBottom.s32Y))
+
 typedef unsigned long HWND;
 typedef unsigned long HANDLE;
 typedef void *(*pWinFunc)(void *,void *);
@@ -63,7 +65,7 @@ typedef struct{
     pCtrFunc pfMoveIn;
     pCtrFunc pfMoveOut;
     pCtrFunc pfScroll;
-}CTREVENT,*pCTREVENT;
+}EVENT,*pEVENT;
 
 typedef struct{
     HANDLE ctrlHdl;
@@ -72,7 +74,7 @@ typedef struct{
 	EMCTRLSTATUS emCtrlStatus;
     RESINFO ctrRes;
     COLORINFO ctrColorInfo;
-    pCTREVENT ctrEvent;
+    EVENT ctrEvent;
     U32   u32Value;
     bool  bRedraw;
 }CONTROL,*pCONTROL;
@@ -104,12 +106,14 @@ typedef struct WND{
     EMWINSTATUS winStatus_e;
     RESINFO winRes_s;
 	U8 *szctrlRes;
+	U32 u32ContextId;
 	COLORINFO winColorInfo;
     bool    bRedraw;
 	pWinFunc pfOnCreate;
     pWinFunc pfOnEvent;
 	pWinFunc pfRelease;
     WIDGET_S winWidget_s;
+	EVENT	winEvent;
     void *pWinPrivate;
 }WINDOW_S,*pWINDOW_S;
 
@@ -126,13 +130,36 @@ typedef struct{
 	POINT_S pos_s;
 	int mesg;
 	U32 param;
+	pWINDOW_S pthis;
 }MS_PARAM,*pMS_PARAM;
+
+typedef enum{
+	WM_LBTN_DOWN,
+	WM_LBTN_UP,
+	WM_RBTN_DOWN,
+	WM_RBTN_UP,
+	WM_MBTN_DOWN,
+	WM_MBTN_UP,
+	WM_MOUSE_MOVE,
+	WM_SCROLL,
+	WM_CLOSE,
+}MS_MSG;
+
+typedef enum{
+	NULL_CONTEXT,
+	OSD_CONTEXT,
+	WND_CONTEXT,
+}CONTEXTID;
+
 pWINDOW_S getCurWnd();
 pWINDOW_S getOSDWnd();
 WINRETSTATUS_E windowInit();
 WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param);
 WINRETSTATUS_E closeWindow(HANDLE hWndId);
+pWINDOW_S posInAboveWnd(POINT_S pos_s);
+pCONTROL posInCtrl(pWINDOW_S pWnd_s,POINT_S pos_s);
 void windowFlush();
+bool winNeedRedraw();
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////

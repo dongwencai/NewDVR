@@ -9,6 +9,7 @@ typedef struct{
 	int nWndNum;
 	pWINDOWREP_S pWndArray;
 }WINREPINFO_S,*pWINREPINFO_S;
+static pthread_mutex_t g_winlock;
 
 static pWINDOW_S lookUpWnd(HWND hWndid);
 static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s);
@@ -33,6 +34,7 @@ WINRETSTATUS_E windowInit()
 {
 	if(!pOSD)
 	{
+		pthread_mutex_init(&g_winlock,NULL);
 		createWindow(NULL, OSD, NULL);
 	}
 	return WIN_WIN_SUC;
@@ -109,7 +111,6 @@ static HANDLE allocCtrlId(pWINDOW_S pWnd_s)
 	{
 		int cnt;
 		temp=pWnd_s->winWidget_s.pControl;
-printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,pWnd_s->winWidget_s.nControlNum);
 		while(1)
 		{
 			id=((rand()<<16)>>16)|pWnd_s->winHdl;
@@ -125,7 +126,12 @@ printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,pWnd_s->winWidget_s.nControlNum);
 	}
 	return 0;
 }
-
+void setWndPos(HANDLE hdlWnd,POINT_S pos_s)
+{
+	pWINDOW_S pWnd_s=lookUpWnd(hdlWnd);
+	pWnd_s->pos_s.lTop=pos_s;
+	pWnd_s->bRedraw=1;
+}
 void *getMsg(void *param)
 {
 	pWINDOW_S pWnd_s=(pWINDOW_S)param;	
@@ -142,6 +148,15 @@ void *getMsg(void *param)
 			free(msg.param);
 			msg.param=NULL;
 		}
+		switch(msg.message)
+		{
+			case WM_CLOSE:
+				closeWindow(pWnd_s->winHdl);
+				pthread_exit(NULL);
+				break;
+			default:
+				break;
+		}
 		msg.message=0;
 	}
 }
@@ -149,6 +164,7 @@ WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 {
 	pWINDOW_S pNewWnd_s=NULL;
 	WINRETSTATUS_E ret;
+	pthread_mutex_lock(&g_winlock);
 	pNewWnd_s=(pWINDOW_S)malloc(sizeof(WINDOW_S));
 	if(!pNewWnd_s)
 	{
@@ -161,6 +177,7 @@ WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 	pNewWnd_s->winStatus_e=WIN_STATUS_FOCUS;
 	pNewWnd_s->hWndId=newWnd;
 	pNewWnd_s->winHdl=allocWndId();
+	pNewWnd_s->bRedraw=1;
 	if(pNewWnd_s->wintype_e==WIN_CONTEXT)
 	{
 		MS_PARAM ms_param_s=*(pMS_PARAM)param;
@@ -172,6 +189,7 @@ WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 	{
 		pNewWnd_s->pfOnCreate(pNewWnd_s,param);
 	}
+	
     if(CreateMsgQueue(&pNewWnd_s->msgid,10)==QUE_SUC)
     {
         printf("Queue created success!\n");
@@ -184,7 +202,7 @@ WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 	
 	if(pNewWnd_s->pfOnEvent)
 	{
-		int ret;
+		int ret=0;
 
 		ret=pthread_create(&pNewWnd_s->msgThreadId,NULL,getMsg,pNewWnd_s);
 		if(ret)
@@ -209,16 +227,20 @@ WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 	pNewWnd_s->hWndParent=NULL;
 	pCurWnd=pNewWnd_s;	
 	showWindow(pNewWnd_s);
+	pthread_mutex_unlock(&g_winlock);
 }
 
 WINRETSTATUS_E closeWindow(HANDLE winHdl)
 {
 	pWINDOW_S pWnd_s=NULL;	
+	pthread_mutex_lock(&g_winlock);
 	pWnd_s=lookUpWnd(winHdl);
 	if(pWnd_s)
 	{
 		pWnd_s->hWndBottom->hWndAbove=NULL;
 		pCurWnd=pWnd_s->hWndBottom;
+		pCurWnd->bRedraw=1;
+		ReleaseMsgQueue(pWnd_s->msgid);
 		if(pWnd_s->pfRelease)
 		{
 			pWnd_s->pfRelease(pWnd_s,NULL);
@@ -231,12 +253,29 @@ WINRETSTATUS_E closeWindow(HANDLE winHdl)
 	}
 	else
 	{
+		pthread_mutex_unlock(&g_winlock);
 		return WIN_WIN_NOTEXIST;
 	}
-	windowFlush();
+	//windowFlush();
+	pthread_mutex_unlock(&g_winlock);
 	return WIN_WIN_SUC;
 }
-
+bool winNeedRedraw()
+{
+	pWINDOW_S ptemp=pOSD;
+	pthread_mutex_lock(&g_winlock);
+	while(ptemp)
+	{
+		if(ptemp->bRedraw)
+		{
+			pthread_mutex_unlock(&g_winlock);
+			return 1;
+		}
+		ptemp = ptemp->hWndAbove;
+	}
+	pthread_mutex_unlock(&g_winlock);
+	return 0;
+}
 void eraseWin()
 {
 	memset(gdc.pWinFb->pMappedAddr,0x00,gdc.pSzWin.nH*gdc.pSzWin.nW*2);
@@ -251,6 +290,7 @@ void windowFlush()
 	{
 		if(ptemp->winStatus_e !=WIN_STATUS_HIDE&&ptemp->winStatus_e !=WIN_STATUS_VISIABLE)
 		{
+			ptemp->bRedraw=0;
 			showWindow(ptemp);
 		}
 		ptemp=ptemp->hWndAbove;
@@ -318,8 +358,6 @@ int showCtrl(pCONTROL pCtrl_s)
 			drawRectangle(pCtrl_s->pos_s.lTop, pCtrl_s->pos_s.rBottom, pCtrl_s->ctrColorInfo.u16fg, 1);
 			lT_s.s32X +=1;
 			lT_s.s32Y +=1;
-			//rB_s.s32X -=1;
-			//rB_s.s32Y -=1;
 			fillRectangle(lT_s, rB_s, pCtrl_s->ctrColorInfo.u16bg);
 			break;
 		default:
@@ -347,7 +385,6 @@ pCONTROL lookUpCtrlInWnd(pWINDOW_S pWnd_s,HWND hWndCtrlId)
 
 static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 {
-	printf("%s\t%d\n",__FUNCTION__,__LINE__);
 	if(pWnd_s->szctrlRes)
 	{
 		
@@ -362,7 +399,6 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 			lookUpcontextRep(nCtextId,&pWnd_s->winWidget_s);
 		}
 		widget.nControlNum=pWnd_s->winWidget_s.nControlNum;
-printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,widget.nControlNum);		
 		widget.pControl=(pCONTROL)malloc(sizeof(pWnd_s->winWidget_s.nControlNum)*sizeof(CONTROL));
 		if(!widget.pControl)
 		{
@@ -371,14 +407,32 @@ printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,widget.nControlNum);
 		memcpy(widget.pControl,pWnd_s->winWidget_s.pControl,sizeof(pWnd_s->winWidget_s.nControlNum)*sizeof(CONTROL));
 		for(cnt=0;cnt<widget.nControlNum;cnt++)
 		{
-			printf("%s\t%d\n",__FUNCTION__,__LINE__);
 			widget.pControl[cnt].ctrlHdl=allocCtrlId(pWnd_s);
-			printf("%s\t%d\n",__FUNCTION__,__LINE__);
-
 		}
 		pWnd_s->winWidget_s=widget;
 	}
 	return WIN_WIN_SUC;
 }
 
-
+pWINDOW_S posInAboveWnd(POINT_S pos_s)
+{
+	pWINDOW_S pWnd_s=getCurWnd();
+	RECT rect_s;
+	while(pWnd_s)
+	{
+		rect_s=pWnd_s->pos_s;
+		if(inArea(pos_s,rect_s))	return pWnd_s;
+		pWnd_s = pWnd_s->hWndBottom;
+	}
+	return NULL;
+}
+pCONTROL posInCtrl(pWINDOW_S pWnd_s,POINT_S pos_s)
+{
+	int cnt;
+	for(cnt=0;cnt<pWnd_s->winWidget_s.nControlNum;cnt++)
+	{
+		if(inArea(pos_s, pWnd_s->winWidget_s.pControl[cnt].pos_s))
+			return &pWnd_s->winWidget_s.pControl[cnt];
+	}
+	return NULL;
+}

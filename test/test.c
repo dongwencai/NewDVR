@@ -44,12 +44,29 @@
 #include "draw.h"
 #include "window.h"
 #include "loadbmp.h"
+#include "sw_queue.h"
 
 #define sw_VO_DEV_DHD0 0
 #define sw_SYS_ALIGN_WIDTH      64
 #define sw_PIXEL_FORMAT         PIXEL_FORMAT_YUV_SEMIPLANAR_420
 #define ALIGN_BACK(x, a)              ((a) * (((x) / (a))))
 #define DEV_MOUSE	"/dev/mice"
+#define MOUSE_BYTE_BTN      0   //按键
+#define MOUSE_BYTE_X        1   //X坐标
+#define MOUSE_BYTE_Y        2   //Y坐标
+#define MOUSE_BYTE_SCROLL   3   //scroll值
+#define MOUSE_BIT_LBTN      0x01    //左键位掩码
+#define MOUSE_BIT_RBTN      0x02
+#define MOUSE_BIT_MBTN      0x04
+#define MOUSE_BIT_ALLBTN    0x07    //三个键的掩码
+
+#define MM_P1_X_SHIFT      16           //x坐标移位
+#define MM_P1_Y_MASK       0xffff       //y坐标掩码
+#define MM_P2_BTN_SHIFT    8 
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
 static struct fb_bitfield g_r16 = {10, 5, 0};
 static struct fb_bitfield g_g16 = {5, 5, 0};
 static struct fb_bitfield g_b16 = {0, 5, 0};
@@ -85,6 +102,11 @@ typedef enum sw_vo_mode_e
     VO_MODE_16MUX = 3,
     VO_MODE_BUTT,
 }sw_VO_MODE_E;
+typedef struct{
+	U32 nResolution;
+	POINT_S mousePos;
+}GLOBALCONFIG;
+GLOBALCONFIG gConf_s;
 
 static VO_DEV VoDev = sw_VO_DEV_DHD0;
 DC_S gdc;
@@ -94,12 +116,106 @@ void sw_VIO_HandleSig(HI_S32 signo)
     if (SIGINT == signo || SIGTSTP == signo)
     {
         sw_COMM_SYS_Exit();
-        printf("\033[0;31mprogram exit abnormally!\033[0;39m\n");
     }
 
     exit(0);
 }
 
+int getResolution()
+{
+	return gConf_s.nResolution;
+}
+void setRelolution(U32 u32Width,U32 u32Height)
+{
+	gConf_s.nResolution = u32Width<<16|u32Height;
+}
+POINT_S getMousePos()
+{
+	return gConf_s.mousePos;
+}
+void setMousePos(POINT_S pos_s)
+{
+	gConf_s.mousePos=pos_s;
+}
+
+static S32 transMouse(U8 *pBuf,  pMS_PARAM pMsg)
+{
+	static bool bLBtnDown = FALSE, bRBtnDown = FALSE, bMBtnDown=FALSE;
+	U32  nPm2;
+	nPm2 = ((U8)pBuf[MOUSE_BYTE_BTN]<<MM_P2_BTN_SHIFT) + (U8)pBuf[MOUSE_BYTE_SCROLL];
+	if (pBuf[MOUSE_BYTE_SCROLL])
+	{
+		pMsg->mesg = WM_SCROLL;
+		pMsg->param = nPm2;
+	}
+
+	if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_LBTN)
+	{
+		if(bLBtnDown == FALSE)
+		{
+			bLBtnDown = TRUE;
+			pMsg->mesg = WM_LBTN_DOWN;
+			pMsg->param = nPm2;
+		}
+	}
+	else
+	{
+		if(bLBtnDown == TRUE)
+		{
+			bLBtnDown = FALSE;
+			pMsg->mesg = WM_LBTN_UP;
+			pMsg->param = nPm2;
+		}
+	}
+
+	if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_RBTN)
+	{
+		if (bRBtnDown == FALSE)
+		{
+			bRBtnDown = TRUE;
+
+			pMsg->mesg = WM_RBTN_DOWN;
+			pMsg->param = nPm2;
+		}
+	}
+	else
+	{
+		if (bRBtnDown == TRUE)
+		{
+			bRBtnDown = FALSE;
+			pMsg->mesg = WM_RBTN_UP;
+			pMsg->param = nPm2;
+		}
+	}
+
+	if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_MBTN)
+	{
+		if (bMBtnDown == FALSE)
+		{
+			bMBtnDown = TRUE;
+
+			pMsg->mesg = WM_MBTN_DOWN;
+			pMsg->param = nPm2;
+		}
+	}
+	else
+	{
+		if (bMBtnDown == TRUE)
+		{
+			bMBtnDown = FALSE;
+			pMsg->mesg = WM_RBTN_UP;
+			pMsg->param = nPm2;
+		}
+	}
+
+	if (pBuf[MOUSE_BYTE_X] != 0 || pBuf[MOUSE_BYTE_Y] != 0)
+	{
+		pMsg->mesg = WM_MOUSE_MOVE;
+		pMsg->param = nPm2;
+	}
+
+	return 0;
+}
 
 HI_S32 sw_HIFB_VO_Start(void)
 {
@@ -161,10 +277,8 @@ HI_S32 sw_HIFB_VO_Start(void)
 
     return 0;
 }
-int getResolution()
-{
-	return 1280<<16|720;
-}
+
+
 HI_S32 sw_HIFB_VO_Stop(void)
 {
     if (HI_SUCCESS != HI_MPI_VO_DisableVideoLayer(VoDev))
@@ -320,6 +434,7 @@ printf("%s\t%d\n",__FUNCTION__,__LINE__);
     maxH = 720;
     stVarInfo.xres = stVarInfo.xres_virtual = maxW;
     stVarInfo.yres = stVarInfo.yres_virtual = maxH;
+	setRelolution(maxW,maxH);
     s32Ret = ioctl(pstInfo->fd, FBIOPUT_VSCREENINFO, &stVarInfo);
     if (s32Ret < 0)
     {
@@ -380,20 +495,25 @@ printf("%s\t%d\n",__FUNCTION__,__LINE__);
 	gdc.pWinFb->pPhyAddr=stCanvasBuf.stCanvas.u32PhyAddr;
 	gdc.pSzWin.nW=maxW;
 	gdc.pSzWin.nH=maxH;
-
+	windowInit();
+	
+	
+	while(1)
     {
-		
+		pWINDOW_S pOsd=getOSDWnd();
+		while(1)
 		{
-			pWINDOW_S pCur=NULL;
-			MS_PARAM ms_param_s={{50,50},0,0};
-			windowInit();
-			pCur=getCurWnd();
-			createWindow(pCur, 1, &ms_param_s);
-			pCur=getCurWnd();
-			//closeWindow(pCur->winHdl);
 			
+			//MS_PARAM ms_param_s={{50,50},0,1};
+			//pOsd=getCurWnd();
+			//createWindow(pCur, 1, &ms_param_s);
+			//pCur=getCurWnd();
+			//closeWindow(pCur->winHdl);
+			if(winNeedRedraw())	break;
+			usleep(1000*40);
     	}
-
+printf("flush\n");
+		windowFlush();
         stCanvasBuf.UpdateRect.x = 0;
         stCanvasBuf.UpdateRect.y = 0;
         stCanvasBuf.UpdateRect.w = maxW;
@@ -402,11 +522,9 @@ printf("%s\t%d\n",__FUNCTION__,__LINE__);
         if (s32Ret < 0)
         {
             printf("REFRESH failed!\n");
-            return HI_NULL;
         }
-
+		usleep(1000*40);
     }
-	while(1);
     return HI_NULL;
 }
 HI_S32 sw_COMM_SYS_Init(VB_CONF_S *pstVbConf)
@@ -668,7 +786,7 @@ int main(int argc, char *argv[])
     stInfo0.layer   =  0;
     stInfo0.fd      = -1;
     stInfo0.ctrlkey =  2;
-	sw_HIFB_REFRESH(&stInfo0);
+	pthread_create(&phifb0,0,sw_HIFB_REFRESH,(void *)(&stInfo0));
     stInfo1.layer   =  3;
     stInfo1.fd      = -1;
     stInfo1.ctrlkey =  3;
@@ -689,7 +807,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 	pthread_create(&phifb1,0,SAMPLE_HIFB_PANDISPLAY,(void *)(&stInfo1));
-	
+	pthread_join(phifb0,0);
 	pthread_join(phifb1,0);
 	while(1);
     HI_MPI_SYS_Exit();
@@ -789,7 +907,7 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
         stPoint.s32YPos = 0;
     }
     }
-
+	setMousePos(*(POINT_S *)&stPoint);
     if (ioctl(pstInfo->fd, FBIOPUT_SCREEN_ORIGIN_HIFB, &stPoint) < 0)
     {
         printf("set screen original show position failed!\n");
@@ -900,6 +1018,7 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
 		while(1)
 		{
 			int len=0;
+			MS_PARAM msMsg;
 			if (poll(stPoll, 1, 1) > 0)
 			{
 				if (stPoll[0].revents)
@@ -913,6 +1032,126 @@ printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
 					stPoint.s32YPos =stPoint.s32YPos<0?0:stPoint.s32YPos;
 					stPoint.s32YPos =stPoint.s32YPos>720?720:stPoint.s32YPos;
 					ioctl(pstInfo->fd, FBIOPUT_SCREEN_ORIGIN_HIFB, &stPoint);
+					setMousePos(*(POINT_S *)&stPoint);
+					msMsg.pos_s=getMousePos();
+					transMouse(cPollData,&msMsg);
+					pWINDOW_S pWnd_s=NULL;
+					pWnd_s=posInAboveWnd(msMsg.pos_s);
+					if(pWnd_s&&(pWnd_s==getCurWnd()))
+					{
+						msMsg.pthis=pWnd_s;
+						pCONTROL pCtrl=NULL;
+						pCtrl=posInCtrl(pWnd_s,msMsg.pos_s);
+						if(pCtrl)
+						{
+							switch(msMsg.mesg)
+							{
+							case WM_LBTN_DOWN:
+								if(pCtrl->ctrEvent.pfLeftBtnDown)
+									pCtrl->ctrEvent.pfLeftBtnDown(&msMsg);
+								break;
+							case WM_LBTN_UP:
+								if(pCtrl->ctrEvent.pfLeftBtnUp)
+									pCtrl->ctrEvent.pfLeftBtnUp(&msMsg);
+								break;
+							case WM_RBTN_DOWN:
+								if(pCtrl->ctrEvent.pfRightBtnDown)
+									pCtrl->ctrEvent.pfRightBtnDown(&msMsg);
+								break;
+							case WM_RBTN_UP:
+								if(pCtrl->ctrEvent.pfRightBtnUp)
+									pCtrl->ctrEvent.pfRightBtnUp(&msMsg);
+								break;
+							case WM_MBTN_DOWN:
+							case WM_MOUSE_MOVE:
+							case WM_SCROLL:	
+								break;
+							}
+
+						}
+						else
+						{
+							switch(msMsg.mesg)
+							{
+								case WM_LBTN_DOWN:
+									if(pWnd_s->winEvent.pfLeftBtnDown)
+										pWnd_s->winEvent.pfLeftBtnDown(&msMsg);
+									break;
+								case WM_LBTN_UP:
+									if(pWnd_s->winEvent.pfLeftBtnUp)
+										pWnd_s->winEvent.pfLeftBtnUp(&msMsg);
+									break;
+								case WM_RBTN_DOWN:
+									if(pWnd_s->winEvent.pfRightBtnDown)
+										pWnd_s->winEvent.pfRightBtnDown(&msMsg);
+									break;
+								case WM_RBTN_UP:
+									if(pWnd_s->winEvent.pfRightBtnUp)
+										pWnd_s->winEvent.pfRightBtnUp(&msMsg);
+									break;
+								case WM_MBTN_DOWN:
+								case WM_MOUSE_MOVE:
+								case WM_SCROLL:	
+									break;
+							}
+
+						}
+						/*
+						if(msMsg.mesg==WM_RBTN_UP)
+						{
+							pWINDOW_S pCur=getCurWnd();
+
+							if(pCur->wintype_e==WIN_CONTEXT)
+							{
+								MSG msg;
+								msg.message=WM_CLOSE;
+								msg.param=NULL;
+								SendMsg(pCur->msgid,msg);
+							}
+							else
+							{
+								msMsg.param=1;
+								createWindow(pCur, 1, &msMsg);
+							}
+						}
+						if(msMsg.mesg==WM_LBTN_DOWN)
+						{
+						
+							pWINDOW_S pCur=getCurWnd();
+							
+							if(pCur->wintype_e==WIN_CONTEXT)
+								closeWindow(pCur->winHdl);
+								
+						}
+					*/
+					}
+					else if(pWnd_s==getOSDWnd())
+					{
+						switch(msMsg.mesg)
+						{
+							case WM_LBTN_DOWN:
+								if(pWnd_s->winEvent.pfLeftBtnDown)
+									pWnd_s->winEvent.pfLeftBtnDown(&msMsg);
+								break;
+							case WM_LBTN_UP:
+								if(pWnd_s->winEvent.pfLeftBtnUp)
+									pWnd_s->winEvent.pfLeftBtnUp(&msMsg);
+								break;
+							case WM_RBTN_DOWN:
+								if(pWnd_s->winEvent.pfRightBtnDown)
+									pWnd_s->winEvent.pfRightBtnDown(&msMsg);
+								break;
+							case WM_RBTN_UP:
+								if(pWnd_s->winEvent.pfRightBtnUp)
+									pWnd_s->winEvent.pfRightBtnUp(&msMsg);
+								break;
+							case WM_MBTN_DOWN:
+							case WM_MOUSE_MOVE:
+							case WM_SCROLL:	
+								break;
+						}
+					}
+					
 				}
 			}
 		}

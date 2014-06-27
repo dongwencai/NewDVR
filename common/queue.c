@@ -69,7 +69,7 @@ QUEUE_STATUS ReleaseMsgQueue(int QueueId)
 	}
 	msgQueue=(MSGQUEUE *)link->data;
 	sem_destroy(&msgQueue->msgwait);
-	pthread_mutex_destroy(&msgQueue->msglock);
+	
 	FreeMsgQueue(msgQueue);
 	link->data=NULL;
 	pthread_mutex_unlock(&g_opslock);

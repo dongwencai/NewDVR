@@ -1,9 +1,5 @@
 #include "window.h"
 #include "draw.h"
-typedef enum{
-	OSD_CONTEXT,
-	WND_CONTEXT,
-}CONTEXTID;
 static CONTROL osdCtrlContext[]={
 	MK_BOTTON(2, 2, 4, 22, 0x801f, 0xfc00),
 	MK_LINE(1, 26, 0, 26, 0x801f, 2),
@@ -19,6 +15,7 @@ typedef struct{
 }CONTEXTREP,*pCONTEXTREP;
 
 CONTEXTREP contextRep[]={
+		{NULL_CONTEXT,NULL},
 	{OSD_CONTEXT,&osdCtext},
 };
 
