@@ -62,7 +62,6 @@ QUEUE_STATUS ReleaseMsgQueue(int QueueId)
 	MSGQUEUE *msgQueue=NULL;
 	pthread_mutex_lock(&g_opslock);
 	link=LookUpMsgQueue(QueueId);
-	DelMsgQueueFromList(link);
 	if(!link)
 	{
 		return QUE_NOTFOUND;
@@ -72,6 +71,9 @@ QUEUE_STATUS ReleaseMsgQueue(int QueueId)
 	
 	FreeMsgQueue(msgQueue);
 	link->data=NULL;
+	DelMsgQueueFromList(link);
+
+
 	pthread_mutex_unlock(&g_opslock);
 	return QUE_SUC;
 }
@@ -100,6 +102,12 @@ static void FreeMsgQueue(__IN MSGQUEUE *msgQueue)
 static QUEUE_STATUS	DelMsgQueueFromList(__IN list *link)
 {
 	list *temp=MsgQueuehead,*prevlink=NULL;
+	if(link==MsgQueuehead)
+	{
+		MsgQueuehead=link->next;
+		free(link);
+		return QUE_SUC;
+	}
 	while(temp)
 	{
 		if(temp==link)
@@ -111,9 +119,8 @@ static QUEUE_STATUS	DelMsgQueueFromList(__IN list *link)
 	}
 	if(prevlink)
 	{
-		free(prevlink);
 		prevlink->next=link->next;
-		link->next=NULL;
+		free(link);
 	}
 	else
 	{
@@ -134,6 +141,7 @@ static list *LookUpMsgQueue(int queueid)
 		{
 			return temp;
 		}
+		temp=temp->next;
 	}
 	return NULL;
 }
@@ -191,30 +199,40 @@ QUEUE_STATUS SendMsg(int queueid,MSG msg)
 	}
 	msgQueue=(MSGQUEUE *)link->data;
 	pthread_mutex_lock(&msgQueue->msglock);
+
 	if((msgQueue->writemsg_ops+1)%msgQueue->size==msgQueue->readmsg_ops)
 	{
 		pthread_mutex_unlock(&msgQueue->msglock);
 		return QUE_MSGFULL;
 	}
+
 	msgQueue->msg[msgQueue->writemsg_ops]=msg;
 	msgQueue->writemsg_ops++;
 	if(msgQueue->writemsg_ops>=msgQueue->size)
 	{
 		msgQueue->writemsg_ops=0;
 	}
+	
 	pthread_mutex_unlock(&msgQueue->msglock);
 	sem_post (&msgQueue->msgwait); 
 	return QUE_SUC;
 }
 
-QUEUE_STATUS RecvMsg(int queueid, __OUT MSG * msg)
+QUEUE_STATUS RecvMsg(int queueid, __OUT MSG * msg,bool blocked)
 {
 	list *link=NULL;
 	link=LookUpMsgQueue(queueid);
     if(!link)   return QUE_NOTFOUND;
 	MSGQUEUE *pstmsgQueue=(MSGQUEUE *)link->data;
-	if(sem_trywait(&pstmsgQueue->msgwait))
+	if(blocked)
+	{
+		sem_wait(&pstmsgQueue->msgwait);
+	}
+	else
+	{
+		sem_trywait(&pstmsgQueue->msgwait);
         return QUE_MSGEMPTY;
+	}
 	pthread_mutex_lock (&pstmsgQueue->msglock); 
 	if (pstmsgQueue->readmsg_ops != pstmsgQueue->writemsg_ops) 
 	{ 

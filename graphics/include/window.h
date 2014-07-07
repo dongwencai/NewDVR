@@ -11,6 +11,8 @@ typedef struct{
 
 #define inArea(pos,rect)	((pos.s32X>rect.lTop.s32X&&pos.s32X<rect.rBottom.s32X)&&(pos.s32Y>rect.lTop.s32Y&&pos.s32Y<rect.rBottom.s32Y))
 
+
+
 typedef unsigned long HWND;
 typedef unsigned long HANDLE;
 typedef void *(*pWinFunc)(void *,void *);
@@ -37,12 +39,12 @@ typedef enum{
 }EMWINTYPE;
 typedef enum{
 	CTRL_STATUS_NORMAL,
-	CTRL_STATUS_DISABLE,
-	CTRL_STATUS_INVISABLE,
 	CTRL_STATUS_FOCUS,
+	CTRL_STATUS_DISABLE,
+	CTRL_STATUS_CLICKED,
+	CTRL_STATUS_INVISABLE,
 }EMCTRLSTATUS;
 typedef struct{
-    bool bLoded;
     int nResId;
     U32 u32ResAddr;
     U32 u32ResLen;
@@ -55,7 +57,7 @@ typedef struct{
         U16 u16fg;
         U16 u16bg;
 }COLORINFO;
-
+typedef void (*WM_CALLBACK)( void* pMsg);
 typedef struct{
     pCtrFunc pfLeftBtnDown;
     pCtrFunc pfLeftBtnUp;
@@ -66,17 +68,29 @@ typedef struct{
     pCtrFunc pfMoveOut;
     pCtrFunc pfScroll;
 }EVENT,*pEVENT;
+typedef enum {
+	S_IMAGE,
+	S_COLOR,
+}EMSKIN;
+typedef struct{
+	int id;
+	EMSKIN type;
+	union{
+		U16 bg;	
+		RESINFO res;
+	}data;
+}SKIN_S;
 
 typedef struct{
     HANDLE ctrlHdl;
     RECT pos_s;
     EMCONTROLTYPE emCtrType;
 	EMCTRLSTATUS emCtrlStatus;
-    RESINFO ctrRes;
-    COLORINFO ctrColorInfo;
-    EVENT ctrEvent;
+    SKIN_S ctrlSkin_s[4];
+	WM_CALLBACK cb;
     U32   u32Value;
     bool  bRedraw;
+	bool  bCanbefocus;
 }CONTROL,*pCONTROL;
 
 typedef struct{
@@ -85,16 +99,18 @@ typedef struct{
 }WIDGET_S,*pWIDGET_S;
 
 typedef enum{
-	WIN_STATUS_HIDE,
-	WIN_STATUS_FOCUS,
-	WIN_STATUS_VISIABLE,
-	WIN_STATUS_DISABLE,
 	WIN_STATUS_NORMAL,
+	WIN_STATUS_FOCUS,
+	WIN_STATUS_DISABLE,
+	WIN_STATUS_VISIABLE,
+	WIN_STATUS_HIDE,
+
 }EMWINSTATUS;
 
 typedef struct WND{
     HWND hWndId;
 	HANDLE winHdl;
+	HANDLE focusCtrlHdl;
 	pthread_t msgThreadId;
 	int  msgid;
 	struct WND *hWndParent;
@@ -104,10 +120,9 @@ typedef struct WND{
     RECT pos_s;
     EMWINTYPE wintype_e;
     EMWINSTATUS winStatus_e;
-    RESINFO winRes_s;
+	SKIN_S	winSkin_s;
 	U8 *szctrlRes;
 	U32 u32ContextId;
-	COLORINFO winColorInfo;
     bool    bRedraw;
 	pWinFunc pfOnCreate;
     pWinFunc pfOnEvent;
@@ -126,12 +141,12 @@ typedef enum{
 	WIN_CTRL_NOTEXIST,
 }WINRETSTATUS_E;
 
-typedef struct{
-	POINT_S pos_s;
-	int mesg;
-	U32 param;
-	pWINDOW_S pthis;
-}MS_PARAM,*pMS_PARAM;
+typedef enum{
+	WIN_FLASH_ALL,
+	WIN_WIN_FLASH,
+	WIN_FLASH_AREA,
+	WIN_CTRL_FLASH,
+}FLASHMSG;
 
 typedef enum{
 	WM_LBTN_DOWN,
@@ -150,6 +165,12 @@ typedef enum{
 	OSD_CONTEXT,
 	WND_CONTEXT,
 }CONTEXTID;
+typedef struct{
+	POINT_S pos_s;
+	int mesg;
+	U32 param;
+	pWINDOW_S pthis;
+}MS_PARAM,*pMS_PARAM;
 
 pWINDOW_S getCurWnd();
 pWINDOW_S getOSDWnd();

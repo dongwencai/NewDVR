@@ -3,9 +3,11 @@
 #include "window.h"
 extern WINDOW_S osd_s;
 extern WINDOW_S context_s;
+extern WINDOW_S setting_s;
 typedef enum{
 	OSD,
 	CONTEXT,
+	SETTING,
 	WIN_NUM
 }EMWIN;
 
@@ -18,5 +20,6 @@ typedef struct{
 WINDOWREP_S windowArray[]={
 	{OSD,&osd_s},
 	{CONTEXT,&context_s},
+	{SETTING,&setting_s},
 };
 #endif

@@ -369,7 +369,6 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
     PTHREAD_HIFB_sw_INFO *pstInfo;
     pstInfo = (PTHREAD_HIFB_sw_INFO *)pData;
     HIFB_COLORKEY_S stColorKey;
-printf("%s\t%d\n",__FUNCTION__,__LINE__);	
     switch (pstInfo->layer)
     {
     case 0 :
@@ -497,33 +496,35 @@ printf("%s\t%d\n",__FUNCTION__,__LINE__);
 	gdc.pSzWin.nH=maxH;
 	windowInit();
 	
-	
+	CreateMsgQueue(&gdc.nMsgid,20);
 	while(1)
     {
 		pWINDOW_S pOsd=getOSDWnd();
+		MSG	msg={WIN_FLASH_ALL,0};
+		SendMsg(gdc.nMsgid,msg);
 		while(1)
 		{
-			
-			//MS_PARAM ms_param_s={{50,50},0,1};
-			//pOsd=getCurWnd();
-			//createWindow(pCur, 1, &ms_param_s);
-			//pCur=getCurWnd();
-			//closeWindow(pCur->winHdl);
-			if(winNeedRedraw())	break;
-			usleep(1000*40);
-    	}
-printf("flush\n");
-		windowFlush();
-        stCanvasBuf.UpdateRect.x = 0;
-        stCanvasBuf.UpdateRect.y = 0;
-        stCanvasBuf.UpdateRect.w = maxW;
-        stCanvasBuf.UpdateRect.h = maxH;
-        s32Ret = ioctl(pstInfo->fd, FBIO_REFRESH, &stCanvasBuf);
-        if (s32Ret < 0)
-        {
-            printf("REFRESH failed!\n");
-        }
-		usleep(1000*40);
+			RecvMsg(gdc.nMsgid,&msg,TRUE);
+			switch(msg.message)
+			{
+				case WIN_FLASH_ALL:
+					windowFlush();
+			        stCanvasBuf.UpdateRect.x = 0;
+			        stCanvasBuf.UpdateRect.y = 0;
+			        stCanvasBuf.UpdateRect.w = maxW;
+			        stCanvasBuf.UpdateRect.h = maxH;
+			        s32Ret = ioctl(pstInfo->fd, FBIO_REFRESH, &stCanvasBuf);
+			        if (s32Ret < 0)
+			        {
+			            printf("REFRESH failed!\n");
+			        }
+					break;
+				case WIN_WIN_FLASH:
+				case WIN_FLASH_AREA:
+				case WIN_CTRL_FLASH:
+					break;
+			}
+		}
     }
     return HI_NULL;
 }
@@ -1037,119 +1038,36 @@ printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
 					transMouse(cPollData,&msMsg);
 					pWINDOW_S pWnd_s=NULL;
 					pWnd_s=posInAboveWnd(msMsg.pos_s);
-					if(pWnd_s&&(pWnd_s==getCurWnd()))
+					if(pWnd_s&&(pWnd_s==getCurWnd())&&pWnd_s !=getOSDWnd())
 					{
 						msMsg.pthis=pWnd_s;
 						pCONTROL pCtrl=NULL;
-						pCtrl=posInCtrl(pWnd_s,msMsg.pos_s);
+						/*pCtrl=posInCtrl(pWnd_s,msMsg.pos_s);
+						
 						if(pCtrl)
 						{
-							switch(msMsg.mesg)
-							{
-							case WM_LBTN_DOWN:
-								if(pCtrl->ctrEvent.pfLeftBtnDown)
-									pCtrl->ctrEvent.pfLeftBtnDown(&msMsg);
-								break;
-							case WM_LBTN_UP:
-								if(pCtrl->ctrEvent.pfLeftBtnUp)
-									pCtrl->ctrEvent.pfLeftBtnUp(&msMsg);
-								break;
-							case WM_RBTN_DOWN:
-								if(pCtrl->ctrEvent.pfRightBtnDown)
-									pCtrl->ctrEvent.pfRightBtnDown(&msMsg);
-								break;
-							case WM_RBTN_UP:
-								if(pCtrl->ctrEvent.pfRightBtnUp)
-									pCtrl->ctrEvent.pfRightBtnUp(&msMsg);
-								break;
-							case WM_MBTN_DOWN:
-							case WM_MOUSE_MOVE:
-							case WM_SCROLL:	
-								break;
-							}
+							if(pCtrl->cb)
+								pCtrl->cb(&msMsg);
+						}
+						else*/
+						{
+							MSG msg;
+							int ret;
+							msg.message=msMsg.mesg;
+							msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
+							*(pMS_PARAM)msg.param=msMsg;
+							ret=SendMsg(pWnd_s->msgid,msg);
 
 						}
-						else
-						{
-							switch(msMsg.mesg)
-							{
-								case WM_LBTN_DOWN:
-									if(pWnd_s->winEvent.pfLeftBtnDown)
-										pWnd_s->winEvent.pfLeftBtnDown(&msMsg);
-									break;
-								case WM_LBTN_UP:
-									if(pWnd_s->winEvent.pfLeftBtnUp)
-										pWnd_s->winEvent.pfLeftBtnUp(&msMsg);
-									break;
-								case WM_RBTN_DOWN:
-									if(pWnd_s->winEvent.pfRightBtnDown)
-										pWnd_s->winEvent.pfRightBtnDown(&msMsg);
-									break;
-								case WM_RBTN_UP:
-									if(pWnd_s->winEvent.pfRightBtnUp)
-										pWnd_s->winEvent.pfRightBtnUp(&msMsg);
-									break;
-								case WM_MBTN_DOWN:
-								case WM_MOUSE_MOVE:
-								case WM_SCROLL:	
-									break;
-							}
-
-						}
-						/*
-						if(msMsg.mesg==WM_RBTN_UP)
-						{
-							pWINDOW_S pCur=getCurWnd();
-
-							if(pCur->wintype_e==WIN_CONTEXT)
-							{
-								MSG msg;
-								msg.message=WM_CLOSE;
-								msg.param=NULL;
-								SendMsg(pCur->msgid,msg);
-							}
-							else
-							{
-								msMsg.param=1;
-								createWindow(pCur, 1, &msMsg);
-							}
-						}
-						if(msMsg.mesg==WM_LBTN_DOWN)
-						{
-						
-							pWINDOW_S pCur=getCurWnd();
-							
-							if(pCur->wintype_e==WIN_CONTEXT)
-								closeWindow(pCur->winHdl);
-								
-						}
-					*/
 					}
 					else if(pWnd_s==getOSDWnd())
-					{
-						switch(msMsg.mesg)
-						{
-							case WM_LBTN_DOWN:
-								if(pWnd_s->winEvent.pfLeftBtnDown)
-									pWnd_s->winEvent.pfLeftBtnDown(&msMsg);
-								break;
-							case WM_LBTN_UP:
-								if(pWnd_s->winEvent.pfLeftBtnUp)
-									pWnd_s->winEvent.pfLeftBtnUp(&msMsg);
-								break;
-							case WM_RBTN_DOWN:
-								if(pWnd_s->winEvent.pfRightBtnDown)
-									pWnd_s->winEvent.pfRightBtnDown(&msMsg);
-								break;
-							case WM_RBTN_UP:
-								if(pWnd_s->winEvent.pfRightBtnUp)
-									pWnd_s->winEvent.pfRightBtnUp(&msMsg);
-								break;
-							case WM_MBTN_DOWN:
-							case WM_MOUSE_MOVE:
-							case WM_SCROLL:	
-								break;
-						}
+					{	
+						MSG msg;
+						int ret;
+						msg.message=msMsg.mesg;
+						msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
+						*(pMS_PARAM)msg.param=msMsg;
+						ret=SendMsg(pWnd_s->msgid,msg);						
 					}
 					
 				}

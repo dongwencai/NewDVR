@@ -1,10 +1,12 @@
 #include "window.h"
 #include "draw.h"
+
+void botton1_callBack(void *pMsg);
 static CONTROL osdCtrlContext[]={
-	MK_BOTTON(2, 2, 4, 22, 0x801f, 0xfc00),
-	MK_LINE(1, 26, 0, 26, 0x801f, 2),
-	MK_BOTTON(2, 30, 4, 52, 0x801f, 0xfc00),
-	MK_LINE(1, 56, 0, 56, 0x801f, 2),
+	MK_BOTTON(2, 2, 200, 22, 0x801f, botton1_callBack),
+	MK_LINE(1, 26, 204, 26, 0x801f, 2,NULL),
+	MK_BOTTON(2, 30, 200, 52, 0x801f, NULL),
+	MK_LINE(1, 56, 204, 56, 0x801f, 2,NULL),
 };
 WIDGET_S osdCtext={osdCtrlContext,sizeof(osdCtrlContext)/sizeof(osdCtrlContext[0])};
 
@@ -30,4 +32,25 @@ int lookUpcontextRep(int nctextid,pWIDGET_S pWidget)
 		}
 	}
 	return 0;
+}
+
+void botton1_callBack(void *pMsg)
+{
+	pMS_PARAM pMsMsg=(pMS_PARAM)pMsg;
+	pWINDOW_S pWnd=pMsMsg->pthis;
+	switch(pMsMsg->mesg)
+	{
+	/*
+		case WM_MOUSE_MOVE:
+			printf("WM_MOUSE_MOVE\n");
+			if(pWnd->winWidget_s.pControl[0].emCtrlStatus==CTRL_STATUS_FOCUS)
+				break;
+			else
+			{
+				pWnd->winWidget_s.pControl[0].emCtrlStatus=CTRL_STATUS_FOCUS;
+				pWnd->bRedraw=TRUE;
+			}
+			break;
+	*/
+	}
 }

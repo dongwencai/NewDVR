@@ -22,7 +22,7 @@ typedef struct
     FRAMEBUFFER *pSdOsdFb;          //SD的osd层
     FRAMEBUFFER *pResFb;            //缓存图片资源的fb
     U32         nCurDev;			//显示gui的设备
-    
+    int 		nMsgid;
     SIZE_T      pSzWin;				//窗口层的大小
     U32 tcClear;				 
     

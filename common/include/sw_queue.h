@@ -2,6 +2,7 @@
 #define __SW_QUEUE_H__
 
 #include "semaphore.h"
+#include "sw_types.h"
 #ifndef __IN
 #define __IN
 #define __OUT
@@ -42,7 +43,7 @@ QUEUE_STATUS InitQueue();
 QUEUE_STATUS CreateMsgQueue(__OUT int *queueid,int msgsize);
 QUEUE_STATUS ReleaseMsgQueue(int queueid);
 QUEUE_STATUS SendMsg(int queueid,MSG msg);
-QUEUE_STATUS RecvMsg(int queueid,__OUT MSG *msg);
+QUEUE_STATUS RecvMsg(int queueid,__OUT MSG *msg,bool blocked);
 QUEUE_STATUS ReleaseAllMsgQueue();
 
 #endif

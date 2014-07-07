@@ -13,15 +13,12 @@ OBJ  := $(SRC:%.c=%.o)
 
 .PHONY : clean all
 
-all: $(OBJ) test
+all:$(OBJ) test
 
-test: *.o
+test: *.o $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ -Wl,--whole-archive $(LIB_LIST) -Wl,--no-whole-archive  
 $(OBJ):%.o:%.c
 	$(CC) $(CFLAGS) -c  $^ -o $@ 
-
-
-
 clean:
 	@rm -f $(TARGET)
 	@rm -f $(OBJ)

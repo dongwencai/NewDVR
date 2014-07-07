@@ -9,4 +9,8 @@ typedef signed   short S16;
 typedef signed   char  S8;
 typedef unsigned char bool;
 
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
 #endif
