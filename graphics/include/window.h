@@ -181,6 +181,11 @@ pWINDOW_S posInAboveWnd(POINT_S pos_s);
 pCONTROL posInCtrl(pWINDOW_S pWnd_s,POINT_S pos_s);
 void windowFlush();
 bool winNeedRedraw();
+
+WINRETSTATUS_E setCtrlLostFocus(pWINDOW_S pWnd_s,pCONTROL pCtrl);
+pCONTROL lookUpCtrlInWnd(pWINDOW_S pWnd_s,HANDLE ctrlHdl);
+WINRETSTATUS_E setCtrlFocus(pWINDOW_S pWnd_s,pCONTROL pCtrl);
+int fillRectangle(POINT_S leftTop_s,POINT_S rightBottom_s,U16 u16Color);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////

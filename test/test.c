@@ -1042,14 +1042,6 @@ printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
 					{
 						msMsg.pthis=pWnd_s;
 						pCONTROL pCtrl=NULL;
-						/*pCtrl=posInCtrl(pWnd_s,msMsg.pos_s);
-						
-						if(pCtrl)
-						{
-							if(pCtrl->cb)
-								pCtrl->cb(&msMsg);
-						}
-						else*/
 						{
 							MSG msg;
 							int ret;
@@ -1064,10 +1056,24 @@ printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
 					{	
 						MSG msg;
 						int ret;
+						pCONTROL pCtrl=NULL;
+						pWINDOW_S pCur_s=getCurWnd();
+								
+						if(pCur_s)
+						{
+							pCtrl=lookUpCtrlInWnd(pCur_s,pCur_s->focusCtrlHdl);
+							if(pCtrl)
+							{
+								setCtrlLostFocus(pCur_s,pCtrl);
+							}
+						}
 						msg.message=msMsg.mesg;
 						msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
 						*(pMS_PARAM)msg.param=msMsg;
 						ret=SendMsg(pWnd_s->msgid,msg);						
+					}
+					else
+					{
 					}
 					
 				}

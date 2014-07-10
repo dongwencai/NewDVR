@@ -5,8 +5,16 @@ void botton1_callBack(void *pMsg);
 static CONTROL osdCtrlContext[]={
 	MK_BOTTON(2, 2, 200, 22, 0x801f, botton1_callBack),
 	MK_LINE(1, 26, 204, 26, 0x801f, 2,NULL),
-	MK_BOTTON(2, 30, 200, 52, 0x801f, NULL),
-	MK_LINE(1, 56, 204, 56, 0x801f, 2,NULL),
+	MK_BOTTON(2, 30, 200, 50, 0x801f, NULL),
+	MK_LINE(1, 54, 204, 54, 0x801f, 2,NULL),
+	MK_BOTTON(2, 58, 200, 78, 0x801f, NULL),
+	MK_LINE(1, 82, 204, 82, 0x801f, 2,NULL),
+	MK_BOTTON(2, 86, 200, 106, 0x801f, NULL),
+	MK_LINE(1, 110, 204, 110, 0x801f, 2,NULL),
+	MK_BOTTON(2, 114, 200, 134, 0x801f, NULL),
+	MK_LINE(1, 138, 204, 138, 0x801f, 2,NULL),
+	MK_BOTTON(2, 142, 200, 162, 0x801f, NULL),
+	MK_LINE(1, 166, 204, 166, 0x801f, 2,NULL),
 };
 WIDGET_S osdCtext={osdCtrlContext,sizeof(osdCtrlContext)/sizeof(osdCtrlContext[0])};
 

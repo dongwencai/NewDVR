@@ -31,6 +31,7 @@ void *settingEvent(void *pWnd_s,void *param)
 	MSG msg=*(pMSG)param;
 	pWINDOW_S pCur=getCurWnd();
 	MS_PARAM msMsg=*(pMS_PARAM)msg.param;
+	/*
 	switch(msg.message)
 	{
 		//case	WM_WIN_CREATE:
@@ -50,6 +51,7 @@ void *settingEvent(void *pWnd_s,void *param)
 			}
 			break;
 	}
+	*/
 }
 void *settingRelease(void *pWnd_s,void *param)
 {

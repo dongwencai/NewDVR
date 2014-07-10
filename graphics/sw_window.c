@@ -16,11 +16,6 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s);
 static WINRETSTATUS_E lookUpWndRep(int nWndId,__OUT pWINDOW_S pWnd_s);
 static HWND allocWndId();
 static HANDLE allocCtrlId(pWINDOW_S pWnd_s);
-static WINRETSTATUS_E setCtrlLostFocus(pWINDOW_S pWnd_s,pCONTROL pCtrl);
-static pCONTROL lookUpCtrlInWnd(pWINDOW_S pWnd_s,HANDLE ctrlHdl);
-
-WINRETSTATUS_E setCtrlFocus(pWINDOW_S pWnd_s,pCONTROL pCtrl);
-int fillRectangle(POINT_S leftTop_s,POINT_S rightBottom_s,U16 u16Color);
 extern DC_S gdc;
 pWINDOW_S pOSD=NULL;
 pWINDOW_S pCurWnd=NULL;
@@ -205,13 +200,18 @@ void *WM_DefaultProc(void *param)
 
 WINRETSTATUS_E setCtrlLostFocus(pWINDOW_S pWnd_s,pCONTROL pCtrl)
 {
-	pthread_mutex_lock(&g_winlock);
-	pCtrl->emCtrlStatus=CTRL_STATUS_NORMAL;
-	pWnd_s->focusCtrlHdl=0;
-	//pWnd_s->bRedraw=TRUE;
-	MSG	msg={WIN_FLASH_ALL,0};
-	SendMsg(gdc.nMsgid,msg);
-	pthread_mutex_unlock(&g_winlock);
+
+	if(pWnd_s->focusCtrlHdl)
+	{
+		pthread_mutex_lock(&g_winlock);
+		pCtrl=lookUpCtrlInWnd(pWnd_s,pWnd_s->focusCtrlHdl);		
+		pCtrl->emCtrlStatus=CTRL_STATUS_NORMAL;
+		pWnd_s->focusCtrlHdl=0;
+		//pWnd_s->bRedraw=TRUE;
+		MSG	msg={WIN_FLASH_ALL,0};
+		SendMsg(gdc.nMsgid,msg);
+		pthread_mutex_unlock(&g_winlock);
+	}
 	return WIN_WIN_SUC;
 }
 
@@ -226,7 +226,13 @@ WINRETSTATUS_E setCtrlFocus(pWINDOW_S pWnd_s,pCONTROL pCtrl)
 	{	
 		MSG msg={0};
 		msg.message=WIN_FLASH_ALL;
+		pCONTROL ptmp=NULL;
 		pthread_mutex_lock(&g_winlock);
+		ptmp=lookUpCtrlInWnd(pWnd_s,pWnd_s->focusCtrlHdl);		
+		if(ptmp)
+		{
+			ptmp->emCtrlStatus=CTRL_STATUS_NORMAL;
+		}
 		pWnd_s->focusCtrlHdl=pCtrl->ctrlHdl;
 		pCtrl->emCtrlStatus=WIN_STATUS_FOCUS;
 		//pWnd_s->bRedraw=TRUE;
@@ -443,14 +449,14 @@ int showWndCtrl(pWINDOW_S pWnd_s)
 				if(pCtrl_s->emCtrlStatus >=CTRL_STATUS_NORMAL&&pCtrl_s->emCtrlStatus <=CTRL_STATUS_CLICKED)
 				{
 					int index=pCtrl_s->emCtrlStatus;
-	printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,index);
 					if(pCtrl_s->ctrlSkin_s[index].data.bg==0)	index=0;
-	printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,index);
 					drawRectangle(lT_s, rB_s, pCtrl_s->ctrlSkin_s[index].data.bg, 1);
 					lT_s.s32X +=1;
 					lT_s.s32Y +=1;
 					fillRectangle(lT_s, rB_s, pCtrl_s->ctrlSkin_s[index].data.bg);
 				}
+				else
+					printf("%s\t%d\t%d\n",__FUNCTION__,__LINE__,pCtrl_s->emCtrlStatus);
 				break;
 			default:
 				printf("error:ctrl_s.emCtrType\t%d\n",pCtrl_s->emCtrType);
@@ -473,7 +479,7 @@ pCONTROL lookUpCtrlInWnd(pWINDOW_S pWnd_s,HANDLE ctrlHdl)
 		}
 	}
 
-	return WIN_CTRL_NOTEXIST;
+	return NULL;
 }
 
 static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
@@ -500,15 +506,16 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 			pWnd_s->pos_s.rBottom.s32Y +=pWnd_s->pos_s.lTop.s32Y;
 		}
 		widget.nControlNum=pWnd_s->winWidget_s.nControlNum;
-		widget.pControl=(pCONTROL)malloc(sizeof(pWnd_s->winWidget_s.nControlNum)*sizeof(CONTROL));
+		widget.pControl=(pCONTROL)malloc(pWnd_s->winWidget_s.nControlNum*sizeof(CONTROL));
 		if(!widget.pControl)
 		{
 			return WIN_WIN_MEMALLOCFAIL;
 		}
-		memcpy(widget.pControl,pWnd_s->winWidget_s.pControl,sizeof(pWnd_s->winWidget_s.nControlNum)*sizeof(CONTROL));
+		memcpy(widget.pControl,pWnd_s->winWidget_s.pControl,pWnd_s->winWidget_s.nControlNum*sizeof(CONTROL));
 		for(cnt=0;cnt<widget.nControlNum;cnt++)
 		{
 			widget.pControl[cnt].ctrlHdl=allocCtrlId(pWnd_s);
+			widget.pControl[cnt].emCtrlStatus=CTRL_STATUS_NORMAL;
 		}
 		pWnd_s->winWidget_s=widget;
 	}
