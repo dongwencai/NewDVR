@@ -1,0 +1,1 @@
+extern CONTROL defNormalCtrl_s[4];

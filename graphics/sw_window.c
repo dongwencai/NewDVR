@@ -3,7 +3,7 @@
 #include "sw_queue.h"
 #include "sw_fb.h"
 #include "windowrep.h"
-
+#include "sw_widget.h"
 
 typedef struct{
 	int nWndNum;
@@ -37,6 +37,21 @@ WINRETSTATUS_E windowInit()
 		createWindow(NULL, OSD, NULL);
 	}
 	return WIN_WIN_SUC;
+}
+int pthread_create_detached(pthread_t *pid, const pthread_attr_t *no_use,void*(*pFunction)(void*), void *arg)
+{
+	int ret;
+	size_t stacksize = (32*1024);
+	pthread_attr_t attr;
+	
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);	//分离线程
+	pthread_attr_setstacksize(&attr, stacksize);					//栈大小
+	
+	ret = pthread_create(pid, &attr, (void*)pFunction, (void *)(arg));
+	
+	pthread_attr_destroy (&attr);
+	return ret;
 }
 static WINRETSTATUS_E lookUpWndRep(int nWndId,__OUT pWINDOW_S pWnd_s)
 {
@@ -152,8 +167,13 @@ void *WM_DefaultProc(void *param)
 		switch(msg.message)
 		{
 			case WM_CLOSE:
+
 				closeWindow(pWnd_s->winHdl);
-				pthread_exit(NULL);
+
+
+				//pthread_exit(NULL);
+				return NULL;
+
 				break;
 			case WM_MOUSE_MOVE:
 					if(pCtrl)
@@ -173,6 +193,21 @@ void *WM_DefaultProc(void *param)
 						}
 					}
 					
+				break;
+			case WM_LBTN_DOWN:
+				if(pWnd_s->wintype_e==WIN_CONTEXT&&pCtrl)
+				{
+					MSG msg;
+					msg.message=WM_CLOSE;
+					msg.param=NULL;	
+					pMs_param->pthis=(pWINDOW_S)pWnd_s->hWndBottom;
+					SendMsg(pWnd_s->msgid,msg);
+					
+				}
+				else
+				{
+
+				}
 				break;
 			default:
 				break;
@@ -286,7 +321,7 @@ WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param)
 	{
 		int ret=0;
 
-		ret=pthread_create(&pNewWnd_s->msgThreadId,NULL,WM_DefaultProc,pNewWnd_s);
+		ret=pthread_create_detached(&pNewWnd_s->msgThreadId,NULL,WM_DefaultProc,pNewWnd_s);
 		if(ret)
 		{
 			if(pNewWnd_s->pfRelease)
@@ -378,7 +413,7 @@ void windowFlush()
 			showWindow(ptemp);
 		}
 		ptemp=ptemp->hWndAbove;
-	}
+	}	
 }
 
 int openCldWindow()
@@ -396,7 +431,7 @@ int showWindow(pWINDOW_S pWnd)
 	switch(pWnd->wintype_e)
 	{
 		case WIN_NORMAL:
-			break;
+			//break;
 		case WIN_CONTEXT:
 		case WIN_TOP:
 			 drawRectangle(lT_s, rB_s, pWnd->winSkin_s.data.bg, 1);
@@ -440,6 +475,7 @@ int showWndCtrl(pWINDOW_S pWnd_s)
 				drawLine(lT_s,rB_s,pCtrl_s->ctrlSkin_s[0].data.bg,pCtrl_s->u32Value);
 				break;
 			case	LABEL:
+			case    IMAGE:
 			case	BUTTON:
 			case	PICTURE:
 			case	CHECK:
@@ -491,7 +527,7 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 	else
 	{
 		WIDGET_S widget;
-		int cnt;
+		int cnt,nUsrCtrlStartindex=0;
 		if(pWnd_s->wintype_e==WIN_CONTEXT)
 		{
 			MS_PARAM ms_param_s=*(pMS_PARAM)pWnd_s->pWinPrivate;
@@ -505,13 +541,31 @@ static WINRETSTATUS_E readCtrl(pWINDOW_S pWnd_s)
 			pWnd_s->pos_s.rBottom.s32X += pWnd_s->pos_s.lTop.s32X;
 			pWnd_s->pos_s.rBottom.s32Y +=pWnd_s->pos_s.lTop.s32Y;
 		}
+		else if(pWnd_s->wintype_e==WIN_NORMAL)
+		{
+			nUsrCtrlStartindex=4;
+			pWnd_s->winWidget_s.nControlNum +=nUsrCtrlStartindex;
+		}
 		widget.nControlNum=pWnd_s->winWidget_s.nControlNum;
 		widget.pControl=(pCONTROL)malloc(pWnd_s->winWidget_s.nControlNum*sizeof(CONTROL));
 		if(!widget.pControl)
 		{
 			return WIN_WIN_MEMALLOCFAIL;
 		}
-		memcpy(widget.pControl,pWnd_s->winWidget_s.pControl,pWnd_s->winWidget_s.nControlNum*sizeof(CONTROL));
+		if(pWnd_s->wintype_e==WIN_NORMAL)
+		{
+			int w,h;
+			w=pWnd_s->pos_s.rBottom.s32X-pWnd_s->pos_s.lTop.s32X;
+			h=pWnd_s->pos_s.rBottom.s32Y-pWnd_s->pos_s.lTop.s32Y;
+			memcpy(widget.pControl,defNormalCtrl_s,nUsrCtrlStartindex*sizeof(CONTROL));
+			widget.pControl[0].pos_s.rBottom.s32X=w-widget.pControl[0].pos_s.rBottom.s32X;
+			widget.pControl[2].pos_s.rBottom.s32X=w-widget.pControl[2].pos_s.rBottom.s32X;
+			widget.pControl[2].pos_s.lTop.s32X=w-widget.pControl[2].pos_s.lTop.s32X;
+			widget.pControl[3].pos_s.lTop.s32X=w-widget.pControl[3].pos_s.lTop.s32X;			
+			widget.pControl[3].pos_s.rBottom.s32X=w-widget.pControl[3].pos_s.rBottom.s32X;			
+
+		}
+		memcpy(widget.pControl+nUsrCtrlStartindex,pWnd_s->winWidget_s.pControl,(pWnd_s->winWidget_s.nControlNum-nUsrCtrlStartindex)*sizeof(CONTROL));
 		for(cnt=0;cnt<widget.nControlNum;cnt++)
 		{
 			widget.pControl[cnt].ctrlHdl=allocCtrlId(pWnd_s);

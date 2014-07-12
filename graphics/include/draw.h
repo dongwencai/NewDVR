@@ -18,6 +18,20 @@
 	.ctrlSkin_s={{0,S_COLOR,bg},{0,S_COLOR,0xfc00}},	\
 	.cb=action,					\
 }
+#define MK_IMAGE(x1,y1,x2,y2,bg,action)		\
+{											\
+	.pos_s={{x1,y1},{x2,y2}},	\
+	.emCtrType=IMAGE,		\
+	.ctrlSkin_s={{0,S_COLOR,bg},{0,S_COLOR,0xfc00}},	\
+	.cb=action,								\		
+}
+#define MK_LABLE(x1,y1,x2,y2,bg,action)		\
+{											\
+	.pos_s={{x1,y1},{x2,y2}},	\
+	.emCtrType=LABEL,		\
+	.ctrlSkin_s={{0,S_COLOR,bg},{0,S_COLOR,0xfc00}},	\
+	.cb=action,								\		
+}
 extern int drawLine(POINT_S begin_s,POINT_S end_s,U16 u16Color,int nLineWidth);
 extern int drawRectangle(POINT_S leftTop_s,POINT_S rightBottom_s,U16 u16Color,int nLineWidth);
 

@@ -223,7 +223,7 @@ QUEUE_STATUS RecvMsg(int queueid, __OUT MSG * msg,bool blocked)
 	list *link=NULL;
 	link=LookUpMsgQueue(queueid);
     if(!link)   return QUE_NOTFOUND;
-	MSGQUEUE *pstmsgQueue=(MSGQUEUE *)link->data;
+	MSGQUEUE *pstmsgQueue=(MSGQUEUE *)link->data;	
 	if(blocked)
 	{
 		sem_wait(&pstmsgQueue->msgwait);
@@ -231,7 +231,6 @@ QUEUE_STATUS RecvMsg(int queueid, __OUT MSG * msg,bool blocked)
 	else
 	{
 		sem_trywait(&pstmsgQueue->msgwait);
-        return QUE_MSGEMPTY;
 	}
 	pthread_mutex_lock (&pstmsgQueue->msglock); 
 	if (pstmsgQueue->readmsg_ops != pstmsgQueue->writemsg_ops) 
@@ -246,7 +245,7 @@ QUEUE_STATUS RecvMsg(int queueid, __OUT MSG * msg,bool blocked)
 		pthread_mutex_unlock (&pstmsgQueue->msglock);
         msg=NULL;
 		return QUE_MSGEMPTY;
-	}
+	}	
 	pthread_mutex_unlock (&pstmsgQueue->msglock);
     return QUE_SUC; 
 } 

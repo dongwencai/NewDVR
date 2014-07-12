@@ -46,7 +46,7 @@ void *osdEvent(void *pWnd_s,void *param)
 			else
 			{
 				msMsg.param=1;
-				createWindow(pCur, 1, &msMsg);
+				createWindow(pCur, CONTEXT, &msMsg);
 			}
 			break;
 		case WM_LBTN_UP:

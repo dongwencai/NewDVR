@@ -46,19 +46,12 @@ void botton1_callBack(void *pMsg)
 {
 	pMS_PARAM pMsMsg=(pMS_PARAM)pMsg;
 	pWINDOW_S pWnd=pMsMsg->pthis;
+	
 	switch(pMsMsg->mesg)
 	{
-	/*
-		case WM_MOUSE_MOVE:
-			printf("WM_MOUSE_MOVE\n");
-			if(pWnd->winWidget_s.pControl[0].emCtrlStatus==CTRL_STATUS_FOCUS)
-				break;
-			else
-			{
-				pWnd->winWidget_s.pControl[0].emCtrlStatus=CTRL_STATUS_FOCUS;
-				pWnd->bRedraw=TRUE;
-			}
+		case WM_LBTN_DOWN:
+			createWindow(pWnd,SETTING,NULL);
 			break;
-	*/
+	
 	}
 }

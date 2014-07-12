@@ -7,7 +7,7 @@ void *settingCreate(void *pWnd_s,void *param);
 void *settingEvent(void *pWnd_s,void *param);
 void *settingRelease(void *pWnd_s,void *param);
 static CONTROL  settingCtrl[]={
-	MK_BOTTON(50, 50, 120, 100, 0x801f, NULL),
+	MK_BOTTON(50, 50, 120, 70, 0x801f, NULL),
 };
 WINDOW_S setting_s={
 	.hWndId=0,
@@ -17,6 +17,7 @@ WINDOW_S setting_s={
 	.pfOnEvent=settingEvent,
 	.pfRelease=settingRelease,
 	.winWidget_s={settingCtrl,sizeof(settingCtrl)/sizeof(settingCtrl[0])},
+	.winSkin_s={0,S_COLOR,0xFFFF},
 	.u32ContextId=NULL_CONTEXT,
 	.pWinPrivate=NULL,
 };

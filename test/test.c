@@ -1054,6 +1054,7 @@ printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
 					}
 					else if(pWnd_s==getOSDWnd())
 					{	
+					
 						MSG msg;
 						int ret;
 						pCONTROL pCtrl=NULL;
@@ -1069,11 +1070,17 @@ printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
 						}
 						msg.message=msMsg.mesg;
 						msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
+						if(!msg.param)
+						{
+printf("%s\t%d\n",__FUNCTION__,__LINE__);					
+						}
 						*(pMS_PARAM)msg.param=msMsg;
 						ret=SendMsg(pWnd_s->msgid,msg);						
 					}
 					else
 					{
+printf("%s\t%d\n",__FUNCTION__,__LINE__);					
+					
 					}
 					
 				}
