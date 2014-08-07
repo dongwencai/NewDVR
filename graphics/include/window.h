@@ -7,7 +7,7 @@
 typedef struct{
 	POINT_S lTop;
 	POINT_S rBottom;
-}RECT,*pRECT;
+}RECT,*PRECT;
 
 #define inArea(pos,rect)	((pos.s32X>rect.lTop.s32X&&pos.s32X<rect.rBottom.s32X)&&(pos.s32Y>rect.lTop.s32Y&&pos.s32Y<rect.rBottom.s32Y))
 
@@ -183,6 +183,7 @@ pWINDOW_S getOSDWnd();
 WINRETSTATUS_E windowInit();
 WINRETSTATUS_E createWindow(pWINDOW_S parent,int newWnd,void *param);
 WINRETSTATUS_E closeWindow(HANDLE hWndId);
+WINRETSTATUS_E setWndHide(pWINDOW_S pWnd_s);
 pWINDOW_S posInAboveWnd(POINT_S pos_s);
 pCONTROL posInCtrl(pWINDOW_S pWnd_s,POINT_S pos_s);
 void windowFlush();

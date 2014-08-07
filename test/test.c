@@ -50,7 +50,7 @@
 #define sw_SYS_ALIGN_WIDTH      64
 #define sw_PIXEL_FORMAT         PIXEL_FORMAT_YUV_SEMIPLANAR_420
 #define ALIGN_BACK(x, a)              ((a) * (((x) / (a))))
-#define DEV_MOUSE	"/dev/mice"
+#define DEV_MOUSE   "/dev/mice"
 #define MOUSE_BYTE_BTN      0   //°´¼ü
 #define MOUSE_BYTE_X        1   //X×ø±ê
 #define MOUSE_BYTE_Y        2   //Y×ø±ê
@@ -80,13 +80,13 @@ typedef enum sw_vi_mode_e
     sw_VI_MODE_4_720P,
     sw_VI_MODE_4_1080P,
     /* For Hi3521 */
-	sw_VI_MODE_8_D1,
-	sw_VI_MODE_1_720P,
-	sw_VI_MODE_16_Cif,
-	sw_VI_MODE_16_2Cif,
-	sw_VI_MODE_16_D1Cif,
-	sw_VI_MODE_1_D1Cif,
-	/*For Hi3520A*/
+    sw_VI_MODE_8_D1,
+    sw_VI_MODE_1_720P,
+    sw_VI_MODE_16_Cif,
+    sw_VI_MODE_16_2Cif,
+    sw_VI_MODE_16_D1Cif,
+    sw_VI_MODE_1_D1Cif,
+    /*For Hi3520A*/
     
     sw_VI_MODE_4_D1,
     sw_VI_MODE_8_2Cif,
@@ -103,8 +103,8 @@ typedef enum sw_vo_mode_e
     VO_MODE_BUTT,
 }sw_VO_MODE_E;
 typedef struct{
-	U32 nResolution;
-	POINT_S mousePos;
+    U32 nResolution;
+    POINT_S mousePos;
 }GLOBALCONFIG;
 GLOBALCONFIG gConf_s;
 
@@ -123,98 +123,98 @@ void sw_VIO_HandleSig(HI_S32 signo)
 
 int getResolution()
 {
-	return gConf_s.nResolution;
+    return gConf_s.nResolution;
 }
 void setRelolution(U32 u32Width,U32 u32Height)
 {
-	gConf_s.nResolution = u32Width<<16|u32Height;
+    gConf_s.nResolution = u32Width<<16|u32Height;
 }
 POINT_S getMousePos()
 {
-	return gConf_s.mousePos;
+    return gConf_s.mousePos;
 }
 void setMousePos(POINT_S pos_s)
 {
-	gConf_s.mousePos=pos_s;
+    gConf_s.mousePos=pos_s;
 }
 
 static S32 transMouse(U8 *pBuf,  pMS_PARAM pMsg)
 {
-	static bool bLBtnDown = FALSE, bRBtnDown = FALSE, bMBtnDown=FALSE;
-	U32  nPm2;
-	nPm2 = ((U8)pBuf[MOUSE_BYTE_BTN]<<MM_P2_BTN_SHIFT) + (U8)pBuf[MOUSE_BYTE_SCROLL];
-	if (pBuf[MOUSE_BYTE_SCROLL])
-	{
-		pMsg->mesg = WM_SCROLL;
-		pMsg->param = nPm2;
-	}
+    static bool bLBtnDown = FALSE, bRBtnDown = FALSE, bMBtnDown=FALSE;
+    U32  nPm2;
+    nPm2 = ((U8)pBuf[MOUSE_BYTE_BTN]<<MM_P2_BTN_SHIFT) + (U8)pBuf[MOUSE_BYTE_SCROLL];
+    if (pBuf[MOUSE_BYTE_SCROLL])
+    {
+        pMsg->mesg = WM_SCROLL;
+        pMsg->param = nPm2;
+    }
 
-	if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_LBTN)
-	{
-		if(bLBtnDown == FALSE)
-		{
-			bLBtnDown = TRUE;
-			pMsg->mesg = WM_LBTN_DOWN;
-			pMsg->param = nPm2;
-		}
-	}
-	else
-	{
-		if(bLBtnDown == TRUE)
-		{
-			bLBtnDown = FALSE;
-			pMsg->mesg = WM_LBTN_UP;
-			pMsg->param = nPm2;
-		}
-	}
+    if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_LBTN)
+    {
+        if(bLBtnDown == FALSE)
+        {
+            bLBtnDown = TRUE;
+            pMsg->mesg = WM_LBTN_DOWN;
+            pMsg->param = nPm2;
+        }
+    }
+    else
+    {
+        if(bLBtnDown == TRUE)
+        {
+            bLBtnDown = FALSE;
+            pMsg->mesg = WM_LBTN_UP;
+            pMsg->param = nPm2;
+        }
+    }
 
-	if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_RBTN)
-	{
-		if (bRBtnDown == FALSE)
-		{
-			bRBtnDown = TRUE;
+    if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_RBTN)
+    {
+        if (bRBtnDown == FALSE)
+        {
+            bRBtnDown = TRUE;
 
-			pMsg->mesg = WM_RBTN_DOWN;
-			pMsg->param = nPm2;
-		}
-	}
-	else
-	{
-		if (bRBtnDown == TRUE)
-		{
-			bRBtnDown = FALSE;
-			pMsg->mesg = WM_RBTN_UP;
-			pMsg->param = nPm2;
-		}
-	}
+            pMsg->mesg = WM_RBTN_DOWN;
+            pMsg->param = nPm2;
+        }
+    }
+    else
+    {
+        if (bRBtnDown == TRUE)
+        {
+            bRBtnDown = FALSE;
+            pMsg->mesg = WM_RBTN_UP;
+            pMsg->param = nPm2;
+        }
+    }
 
-	if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_MBTN)
-	{
-		if (bMBtnDown == FALSE)
-		{
-			bMBtnDown = TRUE;
+    if(pBuf[MOUSE_BYTE_BTN] & MOUSE_BIT_MBTN)
+    {
+        if (bMBtnDown == FALSE)
+        {
+            bMBtnDown = TRUE;
 
-			pMsg->mesg = WM_MBTN_DOWN;
-			pMsg->param = nPm2;
-		}
-	}
-	else
-	{
-		if (bMBtnDown == TRUE)
-		{
-			bMBtnDown = FALSE;
-			pMsg->mesg = WM_RBTN_UP;
-			pMsg->param = nPm2;
-		}
-	}
+            pMsg->mesg = WM_MBTN_DOWN;
+            pMsg->param = nPm2;
+        }
+    }
+    else
+    {
+        if (bMBtnDown == TRUE)
+        {
+            bMBtnDown = FALSE;
+            pMsg->mesg = WM_RBTN_UP;
+            pMsg->param = nPm2;
+        }
+    }
 
-	if (pBuf[MOUSE_BYTE_X] != 0 || pBuf[MOUSE_BYTE_Y] != 0)
-	{
-		pMsg->mesg = WM_MOUSE_MOVE;
-		pMsg->param = nPm2;
-	}
+    if (pBuf[MOUSE_BYTE_X] != 0 || pBuf[MOUSE_BYTE_Y] != 0)
+    {
+        pMsg->mesg = WM_MOUSE_MOVE;
+        pMsg->param = nPm2;
+    }
 
-	return 0;
+    return 0;
 }
 
 HI_S32 sw_HIFB_VO_Start(void)
@@ -301,14 +301,14 @@ HI_S32 sw_HIFB_VO_Stop(void)
 #define sw_IMAGE_SIZE      (300*150*2)
 #define sw_IMAGE_NUM       20
 
-#define sw_IMAGE_PATH		"./res/%d.bmp"
-#define sw_CURSOR_PATH		"./res/cursor.bmp"
+#define sw_IMAGE_PATH       "./res/%d.bmp"
+#define sw_CURSOR_PATH      "./res/cursor.bmp"
 
 #define DIF_LAYER_NAME_LEN 20
 #define HIL_MMZ_NAME_LEN 32
 #define HIFB_RED_1555   0xfc00
-#define sw_VIR_SCREEN_WIDTH	    sw_IMAGE_WIDTH			/*virtual screen width*/
-#define sw_VIR_SCREEN_HEIGHT	sw_IMAGE_HEIGHT*2		/*virtual screen height*/
+#define sw_VIR_SCREEN_WIDTH     sw_IMAGE_WIDTH          /*virtual screen width*/
+#define sw_VIR_SCREEN_HEIGHT    sw_IMAGE_HEIGHT*2       /*virtual screen height*/
 #define s32fd 0
 #define HIL_MMB_NAME_LEN 16
 #define g_s32fd  0
@@ -428,12 +428,12 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
         printf("set screen original show position failed!\n");
         return HI_NULL;
     }
-	
+    
     maxW = 1280;
     maxH = 720;
     stVarInfo.xres = stVarInfo.xres_virtual = maxW;
     stVarInfo.yres = stVarInfo.yres_virtual = maxH;
-	setRelolution(maxW,maxH);
+    setRelolution(maxW,maxH);
     s32Ret = ioctl(pstInfo->fd, FBIOPUT_VSCREENINFO, &stVarInfo);
     if (s32Ret < 0)
     {
@@ -443,25 +443,25 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
 
     switch (pstInfo->ctrlkey)
     {
-	    case 0 :
-	    {
-	        stLayerInfo.BufMode = HIFB_LAYER_BUF_ONE;
-	        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
-	        break;
-	    }
+        case 0 :
+        {
+            stLayerInfo.BufMode = HIFB_LAYER_BUF_ONE;
+            stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
+            break;
+        }
 
-	    case 1 :
-	    {
-	        stLayerInfo.BufMode = HIFB_LAYER_BUF_DOUBLE;
-	        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
-	        break;
-	    }
+        case 1 :
+        {
+            stLayerInfo.BufMode = HIFB_LAYER_BUF_DOUBLE;
+            stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
+            break;
+        }
 
-	    default:
-	    {
-	        stLayerInfo.BufMode = HIFB_LAYER_BUF_NONE;
-	        stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
-	    }
+        default:
+        {
+            stLayerInfo.BufMode = HIFB_LAYER_BUF_NONE;
+            stLayerInfo.u32Mask = HIFB_LAYERMASK_BUFMODE;
+        }
     }
 
     s32Ret = ioctl(pstInfo->fd, FBIOPUT_LAYER_INFO, &stLayerInfo);
@@ -482,49 +482,49 @@ HI_VOID *sw_HIFB_REFRESH(void *pData)
         printf("allocate memory (maxW*maxH*2 bytes) failed\n");
         return HI_NULL;
     }
-	
+    
     stCanvasBuf.stCanvas.u32Height = maxH;
     stCanvasBuf.stCanvas.u32Width = maxW;
     stCanvasBuf.stCanvas.u32Pitch = maxW*2;
     stCanvasBuf.stCanvas.enFmt = HIFB_FMT_ARGB1555;
     memset(pBuf, 0x00, stCanvasBuf.stCanvas.u32Pitch*stCanvasBuf.stCanvas.u32Height);
-	gdc.tcClear=0x00;
-	gdc.pWinFb->hFB=pstInfo->fd;
-	gdc.pWinFb->pMappedAddr=pBuf;
-	gdc.pWinFb->pPhyAddr=stCanvasBuf.stCanvas.u32PhyAddr;
-	gdc.pSzWin.nW=maxW;
-	gdc.pSzWin.nH=maxH;
-	windowInit();
-	
-	CreateMsgQueue(&gdc.nMsgid,20);
-	while(1)
+    gdc.tcClear=0x00;
+    gdc.pWinFb->hFB=pstInfo->fd;
+    gdc.pWinFb->pMappedAddr=pBuf;
+    gdc.pWinFb->pPhyAddr=stCanvasBuf.stCanvas.u32PhyAddr;
+    gdc.pSzWin.nW=maxW;
+    gdc.pSzWin.nH=maxH;
+    windowInit();
+    
+    CreateMsgQueue(&gdc.nMsgid,20);
+    while(1)
     {
-		pWINDOW_S pOsd=getOSDWnd();
-		MSG	msg={WIN_FLASH_ALL,0};
-		SendMsg(gdc.nMsgid,msg);
-		while(1)
-		{
-			RecvMsg(gdc.nMsgid,&msg,TRUE);
-			switch(msg.message)
-			{
-				case WIN_FLASH_ALL:
-					windowFlush();
-			        stCanvasBuf.UpdateRect.x = 0;
-			        stCanvasBuf.UpdateRect.y = 0;
-			        stCanvasBuf.UpdateRect.w = maxW;
-			        stCanvasBuf.UpdateRect.h = maxH;
-			        s32Ret = ioctl(pstInfo->fd, FBIO_REFRESH, &stCanvasBuf);
-			        if (s32Ret < 0)
-			        {
-			            printf("REFRESH failed!\n");
-			        }
-					break;
-				case WIN_WIN_FLASH:
-				case WIN_FLASH_AREA:
-				case WIN_CTRL_FLASH:
-					break;
-			}
-		}
+        pWINDOW_S pOsd=getOSDWnd();
+        MSG msg={WIN_FLASH_ALL,0};
+        SendMsg(gdc.nMsgid,msg);
+        while(1)
+        {
+            RecvMsg(gdc.nMsgid,&msg,TRUE);
+            switch(msg.message)
+            {
+                case WIN_FLASH_ALL:
+                    windowFlush();
+                    stCanvasBuf.UpdateRect.x = 0;
+                    stCanvasBuf.UpdateRect.y = 0;
+                    stCanvasBuf.UpdateRect.w = maxW;
+                    stCanvasBuf.UpdateRect.h = maxH;
+                    s32Ret = ioctl(pstInfo->fd, FBIO_REFRESH, &stCanvasBuf);
+                    if (s32Ret < 0)
+                    {
+                        printf("REFRESH failed!\n");
+                    }
+                    break;
+                case WIN_WIN_FLASH:
+                case WIN_FLASH_AREA:
+                case WIN_CTRL_FLASH:
+                    break;
+            }
+        }
     }
     return HI_NULL;
 }
@@ -715,7 +715,7 @@ HI_S32 sw_COMM_VO_StartChn(VO_DEV VoDev,VO_PUB_ATTR_S *pstPubAttr,sw_VO_MODE_E e
         stChnAttr.stRect.u32Height  = ALIGN_BACK(u32Height/u32Square, 2);
         stChnAttr.u32Priority       = 0;
         stChnAttr.bDeflicker        = HI_FALSE;
-		
+        
         s32Ret = HI_MPI_VO_SetChnAttr(VoDev, i, &stChnAttr);
         if (s32Ret != HI_SUCCESS)
         {
@@ -736,7 +736,7 @@ HI_S32 sw_COMM_VO_StartChn(VO_DEV VoDev,VO_PUB_ATTR_S *pstPubAttr,sw_VO_MODE_E e
 }
 initFb()
 {
-	gdc.pWinFb=(PFRAMEBUFFER)malloc(sizeof(FRAMEBUFFER));
+    gdc.pWinFb=(PFRAMEBUFFER)malloc(sizeof(FRAMEBUFFER));
 }
 int main(int argc, char *argv[])
 {
@@ -751,8 +751,9 @@ int main(int argc, char *argv[])
     sw_VO_MODE_E stVoMode = VO_MODE_1MUX;
     HI_BOOL bExtendedMode=HI_TRUE;
     HI_CHAR ch;
-	initFb();
-	InitQueue();
+    initFb();
+    InitQueue();
+    FontInit();
     memset(&stVbConf, 0, sizeof(VB_CONF_S));
     stVbConf.u32MaxPoolCnt             = 16;
     stVbConf.astCommPool[0].u32BlkSize = 720*576*2;
@@ -787,7 +788,7 @@ int main(int argc, char *argv[])
     stInfo0.layer   =  0;
     stInfo0.fd      = -1;
     stInfo0.ctrlkey =  2;
-	pthread_create(&phifb0,0,sw_HIFB_REFRESH,(void *)(&stInfo0));
+    pthread_create(&phifb0,0,sw_HIFB_REFRESH,(void *)(&stInfo0));
     stInfo1.layer   =  3;
     stInfo1.fd      = -1;
     stInfo1.ctrlkey =  3;
@@ -807,10 +808,10 @@ int main(int argc, char *argv[])
         sw_HIFB_VO_Stop();
         return -1;
     }
-	pthread_create(&phifb1,0,SAMPLE_HIFB_PANDISPLAY,(void *)(&stInfo1));
-	pthread_join(phifb0,0);
-	pthread_join(phifb1,0);
-	while(1);
+    pthread_create(&phifb1,0,SAMPLE_HIFB_PANDISPLAY,(void *)(&stInfo1));
+    pthread_join(phifb0,0);
+    pthread_join(phifb1,0);
+    while(1);
     HI_MPI_SYS_Exit();
     HI_MPI_VB_Exit();
     return 0;
@@ -842,8 +843,8 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
     TDE2_SURFACE_S stSrc,stDst;
     HI_U32 Phyaddr;
     HI_VOID *Viraddr;
-	U8 cPollData[4];
-	struct pollfd  stPoll[1];
+    U8 cPollData[4];
+    struct pollfd  stPoll[1];
     if (HI_NULL == pData)
     {
         return HI_NULL;
@@ -874,20 +875,20 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
         printf("open %s failed!\n",file);
         return HI_NULL;
     }
-	{
-		U8 imps2_param [] = {243,200,243,100,243,80};
-		int fd = open(DEV_MOUSE, O_RDWR);
-		if (fd > 0)
-		{
-			write(fd, imps2_param, sizeof (imps2_param));
-			stPoll[0].fd = fd;
-			stPoll[0].events = POLLIN;
-		}
-		else
-		{
-			printf("open %s fail\n", DEV_MOUSE);
-		}
-	}
+    {
+        U8 imps2_param [] = {243,200,243,100,243,80};
+        int fd = open(DEV_MOUSE, O_RDWR);
+        if (fd > 0)
+        {
+            write(fd, imps2_param, sizeof (imps2_param));
+            stPoll[0].fd = fd;
+            stPoll[0].events = POLLIN;
+        }
+        else
+        {
+            printf("open %s fail\n", DEV_MOUSE);
+        }
+    }
     bShow = HI_FALSE;
     if (ioctl(pstInfo->fd, FBIOPUT_SHOW_HIFB, &bShow) < 0)
     {
@@ -908,7 +909,7 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
         stPoint.s32YPos = 0;
     }
     }
-	setMousePos(*(POINT_S *)&stPoint);
+    setMousePos(*(POINT_S *)&stPoint);
     if (ioctl(pstInfo->fd, FBIOPUT_SCREEN_ORIGIN_HIFB, &stPoint) < 0)
     {
         printf("set screen original show position failed!\n");
@@ -946,21 +947,21 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
     usleep(4*1000*1000);
     switch (pstInfo->ctrlkey)
     {
-	    case 3:
-	    {
-	        var.xres_virtual = 24;
-	        var.yres_virtual = 24;
-	        var.xres = 24;
-	        var.yres = 24;
-	    }
-	    break;
-	    default:
-	    {
-	        var.xres_virtual = 1280;
-	        var.yres_virtual = 720*2;
-	        var.xres = 1280;
-	        var.yres = 720;
-	    }
+        case 3:
+        {
+            var.xres_virtual = 24;
+            var.yres_virtual = 24;
+            var.xres = 24;
+            var.yres = 24;
+        }
+        break;
+        default:
+        {
+            var.xres_virtual = 1280;
+            var.yres_virtual = 720*2;
+            var.xres = 1280;
+            var.yres = 720;
+        }
     }
 
     var.transp= g_a16;
@@ -1005,7 +1006,7 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
     {
     case 3:
     {
-		U16* pbuf=NULL;
+        U16* pbuf=NULL;
         SAMPLE_HIFB_LoadBmp("cursor.bmp",pShowScreen);
         if (ioctl(pstInfo->fd, FBIOPAN_DISPLAY, &var) < 0)
         {
@@ -1016,76 +1017,76 @@ HI_VOID *SAMPLE_HIFB_PANDISPLAY(void *pData)
         }
         printf("show cursor\n");
         sleep(2);
-		while(1)
-		{
-			int len=0;
-			MS_PARAM msMsg;
-			if (poll(stPoll, 1, 1) > 0)
-			{
-				if (stPoll[0].revents)
-				{
-					len = read(stPoll[0].fd, cPollData, 4);
+        while(1)
+        {
+            int len=0;
+            MS_PARAM msMsg;
+            if (poll(stPoll, 1, 1) > 0)
+            {
+                if (stPoll[0].revents)
+                {
+                    len = read(stPoll[0].fd, cPollData, 4);
 printf("%d\t%d\t%d\t%d\n",cPollData[0],cPollData[1],cPollData[2],cPollData[3]);
-					stPoint.s32XPos +=(cPollData[1]>127?cPollData[1]-256:cPollData[1]);
-					stPoint.s32YPos -=(cPollData[2]>127?cPollData[2]-256:cPollData[2]);
-					stPoint.s32XPos =stPoint.s32XPos<0?0:stPoint.s32XPos;
-					stPoint.s32XPos =stPoint.s32XPos>1280?1280:stPoint.s32XPos;
-					stPoint.s32YPos =stPoint.s32YPos<0?0:stPoint.s32YPos;
-					stPoint.s32YPos =stPoint.s32YPos>720?720:stPoint.s32YPos;
-					ioctl(pstInfo->fd, FBIOPUT_SCREEN_ORIGIN_HIFB, &stPoint);
-					setMousePos(*(POINT_S *)&stPoint);
-					msMsg.pos_s=getMousePos();
-					transMouse(cPollData,&msMsg);
-					pWINDOW_S pWnd_s=NULL;
-					pWnd_s=posInAboveWnd(msMsg.pos_s);
-					if(pWnd_s&&(pWnd_s==getCurWnd())&&pWnd_s !=getOSDWnd())
-					{
-						msMsg.pthis=pWnd_s;
-						pCONTROL pCtrl=NULL;
-						{
-							MSG msg;
-							int ret;
-							msg.message=msMsg.mesg;
-							msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
-							*(pMS_PARAM)msg.param=msMsg;
-							ret=SendMsg(pWnd_s->msgid,msg);
+                    stPoint.s32XPos +=(cPollData[1]>127?cPollData[1]-256:cPollData[1]);
+                    stPoint.s32YPos -=(cPollData[2]>127?cPollData[2]-256:cPollData[2]);
+                    stPoint.s32XPos =stPoint.s32XPos<0?0:stPoint.s32XPos;
+                    stPoint.s32XPos =stPoint.s32XPos>1280?1280:stPoint.s32XPos;
+                    stPoint.s32YPos =stPoint.s32YPos<0?0:stPoint.s32YPos;
+                    stPoint.s32YPos =stPoint.s32YPos>720?720:stPoint.s32YPos;
+                    ioctl(pstInfo->fd, FBIOPUT_SCREEN_ORIGIN_HIFB, &stPoint);
+                    setMousePos(*(POINT_S *)&stPoint);
+                    msMsg.pos_s=getMousePos();
+                    transMouse(cPollData,&msMsg);
+                    pWINDOW_S pWnd_s=NULL;
+                    pWnd_s=posInAboveWnd(msMsg.pos_s);
+                    if(pWnd_s&&pWnd_s !=getOSDWnd())
+                    {
+                        msMsg.pthis=pWnd_s;
+                        pCONTROL pCtrl=NULL;
+                        {
+                            MSG msg;
+                            int ret;
+                            msg.message=msMsg.mesg;
+                            msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
+                            *(pMS_PARAM)msg.param=msMsg;
+                            ret=SendMsg(pWnd_s->msgid,msg);
 
-						}
-					}
-					else if(pWnd_s==getOSDWnd())
-					{	
-					
-						MSG msg;
-						int ret;
-						pCONTROL pCtrl=NULL;
-						pWINDOW_S pCur_s=getCurWnd();
-								
-						if(pCur_s)
-						{
-							pCtrl=lookUpCtrlInWnd(pCur_s,pCur_s->focusCtrlHdl);
-							if(pCtrl)
-							{
-								setCtrlLostFocus(pCur_s,pCtrl);
-							}
-						}
-						msg.message=msMsg.mesg;
-						msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
-						if(!msg.param)
-						{
-printf("%s\t%d\n",__FUNCTION__,__LINE__);					
-						}
-						*(pMS_PARAM)msg.param=msMsg;
-						ret=SendMsg(pWnd_s->msgid,msg);						
-					}
-					else
-					{
-printf("%s\t%d\n",__FUNCTION__,__LINE__);					
-					
-					}
-					
-				}
-			}
-		}
+                        }
+                    }
+                    else if(pWnd_s==getOSDWnd())
+                    {   
+                    
+                        MSG msg;
+                        int ret;
+                        pCONTROL pCtrl=NULL;
+                        pWINDOW_S pCur_s=getCurWnd();
+                                
+                        if(pCur_s)
+                        {
+                            pCtrl=lookUpCtrlInWnd(pCur_s,pCur_s->focusCtrlHdl);
+                            if(pCtrl)
+                            {
+                                setCtrlLostFocus(pCur_s,pCtrl);
+                            }
+                        }
+                        msg.message=msMsg.mesg;
+                        msg.param=(pMS_PARAM)malloc(sizeof(MS_PARAM));
+                        if(!msg.param)
+                        {
+printf("%s\t%d\n",__FUNCTION__,__LINE__);                   
+                        }
+                        *(pMS_PARAM)msg.param=msMsg;
+                        ret=SendMsg(pWnd_s->msgid,msg);                     
+                    }
+                    else
+                    {
+printf("%s\t%d\n",__FUNCTION__,__LINE__);                   
+                    
+                    }
+                    
+                }
+            }
+        }
     }
     break;
     }
